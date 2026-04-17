@@ -19,9 +19,43 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 const app = express();
 const PORT = Number(process.env.PORT || 4000);
 
+function normalizeOrigin(origin) {
+  const raw = String(origin || "").trim();
+  if (!raw) return "";
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withProtocol);
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+function getAllowedOrigins() {
+  const explicit = String(process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((item) => normalizeOrigin(item))
+    .filter(Boolean);
+  const publicSite = normalizeOrigin(process.env.PUBLIC_SITE_URL || "");
+  const localhost = ["http://localhost:3000", "http://127.0.0.1:3000"];
+  return [...new Set([...explicit, ...(publicSite ? [publicSite] : []), ...localhost])];
+}
+
+const allowedOrigins = getAllowedOrigins();
+
 app.use(
   cors({
-    origin: process.env.PUBLIC_SITE_URL || true,
+    origin(origin, cb) {
+      // Allow same-origin/server-to-server/no-origin calls (curl, health checks).
+      if (!origin) return cb(null, true);
+      const normalized = normalizeOrigin(origin);
+      const isExplicit = normalized && allowedOrigins.includes(normalized);
+      const isVercelPreview = normalized
+        ? /\.vercel\.app$/i.test(new URL(normalized).hostname)
+        : false;
+      if (isExplicit || isVercelPreview) return cb(null, true);
+      return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
@@ -38,9 +72,8 @@ app.get("/favicon.ico", (_req, res) => {
 });
 
 app.get("/api/public/config", (_req, res) => {
-  const publicSiteUrl = (
-    process.env.PUBLIC_SITE_URL || "http://localhost:3000"
-  ).replace(/\/$/, "");
+  const publicSiteUrl =
+    normalizeOrigin(process.env.PUBLIC_SITE_URL || "") || "http://localhost:3000";
   res.json({ publicSiteUrl });
 });
 
