@@ -43,22 +43,22 @@ function getAllowedOrigins() {
 
 const allowedOrigins = getAllowedOrigins();
 
-app.use(
-  cors({
-    origin(origin, cb) {
-      // Allow same-origin/server-to-server/no-origin calls (curl, health checks).
-      if (!origin) return cb(null, true);
-      const normalized = normalizeOrigin(origin);
-      const isExplicit = normalized && allowedOrigins.includes(normalized);
-      const isVercelPreview = normalized
-        ? /\.vercel\.app$/i.test(new URL(normalized).hostname)
-        : false;
-      if (isExplicit || isVercelPreview) return cb(null, true);
-      return cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  })
-);
+const apiCors = cors({
+  origin(origin, cb) {
+    // Allow server-to-server/no-origin calls (curl, health checks).
+    if (!origin) return cb(null, true);
+    const normalized = normalizeOrigin(origin);
+    const isExplicit = normalized && allowedOrigins.includes(normalized);
+    const isVercelPreview = normalized
+      ? /\.vercel\.app$/i.test(new URL(normalized).hostname)
+      : false;
+    if (isExplicit || isVercelPreview) return cb(null, true);
+    // Deny CORS silently instead of returning a server error.
+    return cb(null, false);
+  },
+  credentials: true,
+});
+app.use("/api", apiCors);
 app.use(express.json({ limit: "50mb" }));
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
