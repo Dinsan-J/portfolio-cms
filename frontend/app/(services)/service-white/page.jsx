@@ -4,17 +4,20 @@ import Copyright from "@/components/footers/Copyright";
 import Footer3 from "@/components/footers/Footer3";
 
 import Header1 from "@/components/headers/Header1";
-import Services from "@/components/services/Services";
+import Services from "@/components/common/Services";
 import Link from "next/link";
 import React from "react";
 import CommonComponents from "@/components/common/CommonComponents";
+import { getPublicSitePayload, getSectionContent } from "@/lib/sectionCms";
 export const metadata = {
   title:
     "Services || Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
   description:
     "Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
 };
-export default function page() {
+export default async function page() {
+  const site = await getPublicSitePayload();
+  const servicesContent = getSectionContent(site, "services");
   return (
     <>
       <div className="tmp-white-version">
@@ -39,7 +42,7 @@ export default function page() {
             </div>
           </div>
         </div>
-        <Services isLight />
+        <Services isLight cmsContent={servicesContent} />
         <Pricing parentClass="our-price-plan-area tmp-section-gapBottom" />
         <Footer3 />
         <Copyright /> <CommonComponents />

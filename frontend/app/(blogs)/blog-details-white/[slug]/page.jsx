@@ -2,10 +2,10 @@ import BlogDetails from "@/components/blog/BlogDetails";
 import Copyright from "@/components/footers/Copyright";
 import Footer3 from "@/components/footers/Footer3";
 import Header1 from "@/components/headers/Header1";
-import { allBlogs } from "@/data/blogs";
 import Link from "next/link";
 import React from "react";
 import CommonComponents from "@/components/common/CommonComponents";
+import { getBlogCmsData } from "@/lib/blogCms";
 export const metadata = {
   title:
     "Blog Details || Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
@@ -13,6 +13,8 @@ export const metadata = {
     "Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
 };
 export default async function page({ params }) {
+  const cmsBlog = await getBlogCmsData();
+  const allBlogs = cmsBlog.posts;
   const { slug } = await params;
   const blog = allBlogs.find((blog) => blog.slug == slug) || allBlogs[0];
   return (
@@ -40,7 +42,7 @@ export default async function page({ params }) {
             </div>
           </div>
         </div>
-        <BlogDetails isLight blog={blog} />
+        <BlogDetails isLight blog={blog} cmsData={cmsBlog} />
         <Footer3 />
         <Copyright /> <CommonComponents />
       </div>

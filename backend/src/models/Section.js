@@ -4,11 +4,21 @@ const sectionEnum = [
   "navbar",
   "hero",
   "about",
+  "facts",
+  "skills",
+  "services2",
+  "education",
+  "brands",
+  "portfolio",
+  "skills2",
   "services",
   "projects",
   "testimonials",
   "contact",
+  "blogs",
   "footer",
+  "copyright",
+  "common",
 ];
 
 const SectionSchema = new mongoose.Schema(
@@ -23,7 +33,7 @@ const SectionSchema = new mongoose.Schema(
     content: { type: mongoose.Schema.Types.Mixed, required: true },
     isActive: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 SectionSchema.index({ section: 1, variant: 1 }, { unique: true });

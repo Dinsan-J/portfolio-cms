@@ -1,5 +1,5 @@
 import Contact from "@/components/common/Contact2";
-import Education from "@/components/common/Education";
+import Education from "@/components/common/Education2";
 import Facts from "@/components/common/Facts";
 import Pricing from "@/components/common/Pricing";
 import Services from "@/components/common/Services";
@@ -9,13 +9,20 @@ import Header1 from "@/components/headers/Header1";
 import Link from "next/link";
 import React from "react";
 import CommonComponents from "@/components/common/CommonComponents";
+import { getPublicSitePayload, getSectionContent } from "@/lib/sectionCms";
 export const metadata = {
   title:
     "About || Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
   description:
     "Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
 };
-export default function page() {
+export default async function page() {
+  const site = await getPublicSitePayload();
+  const servicesContent = getSectionContent(site, "services");
+  const skillsContent = getSectionContent(site, "skills");
+  const factsContent = getSectionContent(site, "facts");
+  const educationContent = getSectionContent(site, "education");
+  const contactContent = getSectionContent(site, "contact");
   return (
     <>
       <div className="tmp-white-version">
@@ -40,12 +47,18 @@ export default function page() {
             </div>
           </div>
         </div>
-        <Services isLight />
-        <Skills parentClass="tmp-skill-area tmp-section-gapBottom" />
-        <Facts />
-        <Education />
+        <Services isLight cmsContent={servicesContent} />
+        <Skills
+          parentClass="tmp-skill-area tmp-section-gapBottom"
+          cmsContent={skillsContent}
+        />
+        <Facts cmsContent={factsContent} />
+        <Education cmsContent={educationContent} />
         <Pricing />
-        <Contact parentClass="get-in-touch-area tmp-section-gapBottom tmp-section-gapTop" />
+        <Contact
+          parentClass="get-in-touch-area tmp-section-gapBottom tmp-section-gapTop"
+          cmsContent={contactContent}
+        />
         <Footer1 /> <CommonComponents />
       </div>
     </>

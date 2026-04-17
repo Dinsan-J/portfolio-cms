@@ -72,6 +72,12 @@ body {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .brand {
@@ -188,10 +194,12 @@ body {
 
 .sidebar-footer {
   margin-top: auto;
+  display: flex;
+  justify-content: center;
 }
 
 .sidebar-logout {
-  width: auto;
+  width: fit-content;
   color: #ffcfcf;
   border-color: rgba(255, 129, 129, 0.35);
   background: rgba(255, 118, 118, 0.08);
@@ -307,6 +315,25 @@ body {
 .muted {
   color: var(--muted);
   font-size: 13px;
+}
+
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7f8aa8;
+  box-shadow: 0 0 0 1px rgba(127, 138, 168, 0.35);
+}
+
+.status-dot.is-active {
+  background: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
 }
 
 .view {
@@ -573,10 +600,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--border);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, #5b6fff 25%);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-alt) 85%, transparent);
+  background: color-mix(in srgb, var(--surface-alt) 82%, #5b6fff 18%);
 }
 
 .field > .btn {
@@ -585,9 +612,15 @@ body {
 }
 
 .field span.label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  color: #5b6fff;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+}
+
+body[data-theme-mode="dark"] .field span.label {
+  color: #b6c4ff;
 }
 
 .field input.text,
@@ -598,6 +631,7 @@ body {
   font: inherit;
   background: var(--surface);
   color: var(--text);
+  width: 50%;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -631,24 +665,44 @@ body {
 }
 
 .field textarea {
-  min-height: 76px;
+  min-height: 128px;
   resize: vertical;
 }
 
 .group {
-  border: 1px dashed var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, #4f7cff 35%);
   border-radius: 14px;
-  padding: 11px;
+  padding: 12px;
   margin-bottom: 10px;
-  background: color-mix(in srgb, var(--surface-alt) 92%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--surface-alt) 85%, #2f5dff 15%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 1px rgba(79, 124, 255, 0.08);
 }
 
 .group-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--text);
+  color: #5b6fff;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed color-mix(in srgb, #5b6fff 40%, var(--border) 60%);
+}
+
+body[data-theme-mode="dark"] .group-title {
+  color: #aebcff;
+  border-bottom-color: color-mix(in srgb, #aebcff 35%, var(--border) 65%);
+}
+
+/* Strong visual separation for nested editors (arrays/objects). */
+.group .group {
+  border-color: color-mix(in srgb, var(--border) 60%, #7c8cff 40%);
+  background: color-mix(in srgb, var(--surface-alt) 82%, #607cff 18%);
+}
+
+.group .group .group {
+  border-color: color-mix(in srgb, var(--border) 60%, #22c55e 40%);
+  background: color-mix(in srgb, var(--surface-alt) 86%, #22c55e 14%);
 }
 
 .row-actions {

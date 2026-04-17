@@ -5,13 +5,15 @@ import Header1 from "@/components/headers/Header1";
 import Link from "next/link";
 import React from "react";
 import CommonComponents from "@/components/common/CommonComponents";
+import { getBlogCmsData } from "@/lib/blogCms";
 export const metadata = {
   title:
     "Blog || Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
   description:
     "Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
 };
-export default function page() {
+export default async function page() {
+  const cmsBlog = await getBlogCmsData();
   return (
     <>
       <Header1 />
@@ -35,7 +37,7 @@ export default function page() {
           </div>
         </div>
       </div>
-      <Blogs />
+      <Blogs allBlogs={cmsBlog.posts} cmsData={cmsBlog} />
       <Footer1 />
       <Copyright /> <CommonComponents />
     </>

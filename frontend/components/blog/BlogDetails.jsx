@@ -5,7 +5,14 @@ import BlogSidebar from "./BlogSidebar";
 import Comment from "./Comment";
 import { tags } from "@/data/blogs";
 import { slugify } from "@/utlis/slugify";
-export default function BlogDetails({ blog, isLight = false }) {
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
+export default function BlogDetails({ blog, isLight = false, cmsData = null }) {
+  const detailTags =
+    Array.isArray(blog?.tags) && blog.tags.length
+      ? blog.tags
+      : Array.isArray(cmsData?.tags) && cmsData.tags.length
+        ? cmsData.tags
+        : tags;
   return (
     <div className="blog-classic-area-wrapper tmp-section-gap">
       <div className="container">
@@ -15,7 +22,7 @@ export default function BlogDetails({ blog, isLight = false }) {
               <div className="thumbnail-top">
                 <Image
                   alt="Corporate_business"
-                  src={blog.imageSrc}
+                  src={resolveCmsMediaSrc(blog.imageSrc)}
                   width={850}
                   height={440}
                 />
@@ -112,7 +119,7 @@ export default function BlogDetails({ blog, isLight = false }) {
                   <div className="navigation-tags">
                     <h3 className="tag-title">Keyword:</h3>
                     <ul>
-                      {tags.slice(1, 4).map((tag, index) => (
+                      {detailTags.slice(0, 4).map((tag, index) => (
                         <li key={index}>
                           <p className="tag">
                             <Link
@@ -267,7 +274,7 @@ export default function BlogDetails({ blog, isLight = false }) {
             </div>
           </div>
           <div className="col-lg-4">
-            <BlogSidebar isLight={isLight} />
+            <BlogSidebar isLight={isLight} cmsData={cmsData} />
           </div>
         </div>
       </div>

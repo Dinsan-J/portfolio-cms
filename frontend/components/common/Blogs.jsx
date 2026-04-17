@@ -18,6 +18,8 @@ export default function Blogs({
     Array.isArray(cmsContent?.posts) && cmsContent.posts.length
       ? cmsContent.posts
       : blogData2;
+  const readMoreLabel = cmsContent?.readMoreLabel || "Read More";
+  const readMoreIcon = cmsContent?.readMoreIcon || "fa-solid fa-angle-right";
   return (
     <section className={parentClass} id="blog">
       <div className="container">
@@ -84,9 +86,9 @@ export default function Blogs({
                         }`}
                         className="read-more-btn"
                       >
-                        Read More
+                        {readMoreLabel}
                         <span className="read-more-icon">
-                          <i className="fa-solid fa-angle-right" />
+                          <i className={readMoreIcon} />
                         </span>
                       </Link>
                     </div>

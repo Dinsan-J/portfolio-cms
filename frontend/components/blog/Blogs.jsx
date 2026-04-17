@@ -4,7 +4,10 @@ import { blogData } from "@/data/blogs";
 import BlogSidebar from "./BlogSidebar";
 
 import Link from "next/link";
-export default function Blogs({ allBlogs = blogData, isLight = false }) {
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
+export default function Blogs({ allBlogs = blogData, isLight = false, cmsData = null }) {
+  const readMoreLabel = cmsData?.readMoreLabel || "Read More";
+  const readMoreIcon = cmsData?.readMoreIcon || "fa-sharp fa-regular fa-arrow-right";
   return (
     <div className="blog-classic-area-wrapper tmp-section-gap">
       <div className="container">
@@ -26,14 +29,14 @@ export default function Blogs({ allBlogs = blogData, isLight = false }) {
                     <Image
                       className="img-primary hidden-on-mobile"
                       alt={"blog.altText"}
-                      src={blog.imageSrc}
+                      src={resolveCmsMediaSrc(blog.imageSrc)}
                       width={850}
                       height={462}
                     />
                     <Image
                       className="img-secondary"
                       alt={"blog.altText"}
-                      src={blog.imageSrc}
+                      src={resolveCmsMediaSrc(blog.imageSrc)}
                       width={850}
                       height={462}
                     />
@@ -80,12 +83,12 @@ export default function Blogs({ allBlogs = blogData, isLight = false }) {
                       }`}
                     >
                       <span className="icon-reverse-wrapper">
-                        <span className="btn-text">Read More</span>
+                        <span className="btn-text">{readMoreLabel}</span>
                         <span className="btn-icon">
-                          <i className="fa-sharp fa-regular fa-arrow-right" />
+                          <i className={readMoreIcon} />
                         </span>
                         <span className="btn-icon">
-                          <i className="fa-sharp fa-regular fa-arrow-right" />
+                          <i className={readMoreIcon} />
                         </span>
                       </span>
                     </Link>
@@ -116,7 +119,7 @@ export default function Blogs({ allBlogs = blogData, isLight = false }) {
             )}
           </div>
           <div className="col-lg-4">
-            <BlogSidebar isLight={isLight} />
+            <BlogSidebar isLight={isLight} cmsData={cmsData} />
           </div>
         </div>
       </div>

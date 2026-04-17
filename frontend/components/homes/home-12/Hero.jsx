@@ -2,7 +2,11 @@ import React from "react";
 import Image from "next/image";
 import TyperComponent from "@/components/common/TyperComponent";
 import ParticleComponent from "@/components/common/ParticleComponent";
-import { getHeroMainImage, getHeroTitleLine, getHeroTypedStrings } from "@/components/homes/heroCms";
+import {
+  getHeroMainImage,
+  getHeroTitleLine,
+  getHeroTypedStrings,
+} from "@/components/homes/heroCms";
 import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
 
 export default function Hero({ isLight = false, cmsContent }) {

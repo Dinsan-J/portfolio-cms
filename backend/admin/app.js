@@ -2,11 +2,18 @@ const SECTIONS = [
   "navbar",
   "hero",
   "about",
+  "facts",
+  "skills",
+  "education",
+  "portfolio",
+  "skills2",
   "services",
   "projects",
   "testimonials",
   "contact",
+  "blogs",
   "footer",
+  "copyright",
 ];
 
 const LS_API = "portfolioCmsApiBase";
@@ -38,11 +45,18 @@ const SECTION_ICONS = {
   navbar: "menu",
   hero: "sparkles",
   about: "user-round",
+  facts: "bar-chart-3",
+  skills: "gauge",
+  education: "graduation-cap",
+  portfolio: "folder-kanban",
+  skills2: "bolt",
   services: "wrench",
   projects: "folder",
   testimonials: "message-circle",
   contact: "mail",
+  blogs: "newspaper",
   footer: "layout-template",
+  copyright: "copyright",
 };
 
 function withIcon(icon, label) {
@@ -104,6 +118,25 @@ function animateViewEnter() {
   requestAnimationFrame(() => {
     view.classList.add("page-enter");
   });
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+}
+
+function ensurePageStartsAtTop() {
+  if (
+    document.activeElement &&
+    typeof document.activeElement.blur === "function"
+  ) {
+    document.activeElement.blur();
+  }
+  scrollToTop();
+  requestAnimationFrame(() => {
+    scrollToTop();
+    view?.scrollIntoView({ block: "start", inline: "nearest" });
+  });
+  window.setTimeout(() => scrollToTop(), 0);
 }
 
 function applyScrollReveal(root = view) {
@@ -308,14 +341,35 @@ function authHeaders() {
 
 async function apiFetch(path, options = {}) {
   const base = getApiBase().replace(/\/$/, "");
-  const res = await fetch(`${base}${path}`, {
+  const fetchOptions = {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
       ...authHeaders(),
     },
-  });
+  };
+  const method = String(fetchOptions.method || "GET").toUpperCase();
+  const isWrite = method === "PUT" || method === "POST" || method === "PATCH";
+  const retryDelaysMs = isWrite ? [0, 500, 1000, 1800] : [0];
+  let res;
+  let lastNetworkErr = null;
+  for (let i = 0; i < retryDelaysMs.length; i++) {
+    if (retryDelaysMs[i] > 0) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[i]));
+    }
+    try {
+      res = await fetch(`${base}${path}`, fetchOptions);
+      lastNetworkErr = null;
+      break;
+    } catch (err) {
+      lastNetworkErr = err;
+      if (i === retryDelaysMs.length - 1) throw err;
+    }
+  }
+  if (!res) {
+    throw lastNetworkErr || new Error("Network request failed");
+  }
   const text = await res.text();
   let data;
   try {
@@ -351,7 +405,9 @@ function getDeep(obj, path) {
 
 function looksLikeImageField(key, val) {
   if (typeof val !== "string") return false;
-  if (/^https?:\/\//i.test(val)) return true;
+  if (looksLikeVideoField(key, val)) return false;
+  if (/^https?:\/\//i.test(val) && /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(val))
+    return true;
   if (!val.startsWith("/")) return false;
   if (/\.(png|jpe?g|gif|webp|svg)$/i.test(val)) return true;
   return /(src|image|logo|icon|photo|banner|bg|avatar|thumb)/i.test(
@@ -359,8 +415,20 @@ function looksLikeImageField(key, val) {
   );
 }
 
+function looksLikeVideoField(key, val) {
+  const k = String(key || "");
+  if (/video|movie|clip|mp4|webm|m4v|ogg/i.test(k)) return true;
+  if (typeof val !== "string") return false;
+  return /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(val);
+}
+
+function looksLikeMediaField(key, val) {
+  return looksLikeImageField(key, val) || looksLikeVideoField(key, val);
+}
+
 function fieldIconName(label, value) {
   const key = String(label || "").toLowerCase();
+  if (looksLikeVideoField(key, value)) return "video";
   if (looksLikeImageField(key, value)) return "image";
   if (
     /url|link|website|href|slug/.test(key) ||
@@ -390,9 +458,245 @@ function cloneTemplateForArray(arr) {
   return "";
 }
 
-function preferredKeyOrder(section, contentRoot) {
+function humanizeKey(key) {
+  const k = String(key);
+  const one = {
+    darkLogo: "Logo",
+    lightLogo: "Logo",
+    href: "URL",
+    iconClass: "Icon class (Font Awesome)",
+    isNextLink: "Use Next.js Link",
+    sourceNotes: "Developer notes (optional)",
+    buttonHref: "Button URL",
+    buttonText: "Button label",
+    titleLine1: "Title line 1",
+    titleLine2: "Title line 2",
+    rightsPrefix: "Rights text (before owner name)",
+    linePrefix: "Text after year (before owner link)",
+    ownerLabel: "Owner / brand name",
+    ownerHref: "Owner URL",
+    imageSrc: "Image URL",
+    altText: "Image alt text",
+    animationOrder: "Animation order class",
+    parentClassDefault: "Section wrapper classes",
+    sectionId: "HTML section ID",
+    readMoreLabel: "Read-more button label",
+    readMoreIcon: "Read-more icon class",
+  };
+  if (one[k]) return one[k];
+  return k
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
+function shouldHideField(key, parentValue) {
+  const k = String(key || "");
+  if (
+    [
+      "component",
+      "sourceNotes",
+      "sectionId",
+      "parentClassDefault",
+      "layout",
+      "animationOrder",
+      "sourceFile",
+    ].includes(k)
+  ) {
+    return true;
+  }
+  if (["darkLogo", "lightLogo", "logo", "logoAlt"].includes(k)) return true;
+  // Hide duplicate hero image sources; keep single `mainImage`.
+  if (["imagesFromSrcScan", "imageComponents", "bannerImage", "thumbnailImage"].includes(k))
+    return true;
+  return false;
+}
+
+function normalizeLogoFields(node) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    node.forEach((item) => normalizeLogoFields(item));
+    return;
+  }
+  if (typeof node.darkLogo === "string" || typeof node.lightLogo === "string") {
+    const shared = node.darkLogo || node.lightLogo || "";
+    if (shared) {
+      node.darkLogo = shared;
+      node.lightLogo = shared;
+    }
+  }
+  Object.keys(node).forEach((k) => normalizeLogoFields(node[k]));
+}
+
+function pickHeroImage(content) {
+  const fromMain = content?.mainImage;
+  const fromBanner = content?.bannerImage;
+  const fromThumb = content?.thumbnailImage;
+  const fromComponentScan = content?.imageComponents?.[0];
+  const fromSrcScan = content?.imagesFromSrcScan?.[0];
+  return (
+    fromMain ||
+    fromBanner ||
+    fromThumb ||
+    (fromComponentScan
+      ? {
+          src: fromComponentScan.src,
+          width: fromComponentScan.width,
+          height: fromComponentScan.height,
+          alt: fromComponentScan.alt,
+        }
+      : null) ||
+    (fromSrcScan
+      ? {
+          src: fromSrcScan.src,
+          width: fromSrcScan.width,
+          height: fromSrcScan.height,
+          alt: fromSrcScan.alt,
+        }
+      : null)
+  );
+}
+
+function normalizeHeroImageFields(content) {
+  if (!content || typeof content !== "object") return;
+  const chosen = pickHeroImage(content);
+  if (!chosen || typeof chosen !== "object") return;
+  const normalized = {
+    src: chosen.src || "",
+    width: Number(chosen.width) || 0,
+    height: Number(chosen.height) || 0,
+    alt: chosen.alt || "banner-img",
+  };
+  content.mainImage = { ...normalized };
+  // Keep older key compatibility for variants/components.
+  content.bannerImage = { ...normalized };
+  content.thumbnailImage = { ...normalized };
+}
+
+function normalizeEditorContent(section, content) {
+  if (!content || typeof content !== "object") return;
+  normalizeLogoFields(content);
+  if (section === "hero") normalizeHeroImageFields(content);
+}
+
+function groupTitleLabel(section, variant, key) {
+  const v = String(variant || "");
+  const map = {
+    footer: {
+      footer5: {
+        cta: "Call to action (top banner)",
+        menuDark: "Footer links — dark theme routes",
+        menuLight: "Footer links — light theme routes",
+        socialLinks: "Social icons",
+        copyright: "Copyright line",
+      },
+      footer1: {
+        footer: "Main footer (logo, links, contact)",
+        copyright: "Copyright strip",
+      },
+      footer2: {
+        footer: "Branding, links & contact columns",
+        newsletterSection: "Newsletter column",
+      },
+      footer3: {
+        footer: "Branding, newsletter, links & contact",
+      },
+      footer4: {
+        copyright: "Copyright line",
+      },
+    },
+    services: {
+      "*": {
+        sectionHead: "Section heading",
+        sideImage: "Side image",
+        items: "Items",
+      },
+    },
+    blogs: {
+      "*": {
+        sectionHead: "Section heading",
+        posts: "Homepage blog cards",
+        recentPosts: "Sidebar recent posts",
+        categories: "Sidebar categories",
+        tags: "Sidebar tags",
+        sidebar: "Sidebar settings",
+      },
+    },
+  };
+  return (
+    map[section]?.[v]?.[key] || map[section]?.["*"]?.[key] || humanizeKey(key)
+  );
+}
+
+function preferredNestedOrder(parentKey) {
+  const map = {
+    cta: ["titleLine1", "titleLine2", "subtitle", "buttonText", "buttonHref"],
+    copyright: ["linePrefix", "rightsPrefix", "ownerLabel", "ownerHref"],
+    newsletterSection: ["title", "para", "placeholder", "iconClass"],
+    sectionHead: ["subtitle", "titleLines", "description"],
+    newsletter: ["placeholder", "envelopeIconClass"],
+    sideImage: ["src", "width", "height", "alt"],
+    footer: [
+      "component",
+      "darkLogo",
+      "lightLogo",
+      "logoAlt",
+      "description",
+      "descriptionLine1",
+      "descriptionLine2",
+      "newsletter",
+      "quickLinksTitle",
+      "footerLinks",
+      "footerLinksWhite",
+      "contactTitle",
+      "contactItems",
+      "socialLinks",
+    ],
+    footerLinks: ["label", "href", "isNextLink"],
+    footerLinksWhite: ["label", "href", "isNextLink"],
+    menuDark: ["label", "href", "isNextLink"],
+    menuLight: ["label", "href", "isNextLink"],
+    legalLinksDark: ["label", "href", "isNextLink"],
+    legalLinksLight: ["label", "href", "isNextLink"],
+    contactItems: ["iconClass", "type", "display", "href"],
+    socialLinks: ["iconClass", "href"],
+    posts: [
+      "id",
+      "title",
+      "slug",
+      "description",
+      "author",
+      "date",
+      "imageSrc",
+      "altText",
+      "animationOrder",
+      "categories",
+      "tags",
+    ],
+    recentPosts: ["id", "title", "slug", "category", "imageSrc"],
+    categories: ["title", "count"],
+    sidebar: ["about"],
+    about: ["title", "imageSrc", "name", "role", "description", "socialLinks"],
+  };
+  return map[parentKey] || null;
+}
+
+function sortKeysList(keys, preferred) {
+  if (!preferred || !preferred.length) {
+    return keys.slice().sort((a, b) => String(a).localeCompare(String(b)));
+  }
+  const index = new Map(preferred.map((k, i) => [k, i]));
+  return keys.slice().sort((a, b) => {
+    const ia = index.has(a) ? index.get(a) : Number.MAX_SAFE_INTEGER;
+    const ib = index.has(b) ? index.get(b) : Number.MAX_SAFE_INTEGER;
+    if (ia !== ib) return ia - ib;
+    return String(a).localeCompare(String(b));
+  });
+}
+
+function preferredKeyOrder(section, contentRoot, variant) {
+  const v = String(variant || "");
   if (section === "hero") {
-    // Covers both canonical (`hero1`, `hero2`) and scanned shapes.
     return [
       "layout",
       "bannerImage",
@@ -410,7 +714,6 @@ function preferredKeyOrder(section, contentRoot) {
       "primaryCta",
       "findMeOnTitle",
       "bannerShapeImage",
-      // scanned/extracted helpers
       "sourceFile",
       "imagesFromSrcScan",
       "imageComponents",
@@ -434,21 +737,93 @@ function preferredKeyOrder(section, contentRoot) {
     ];
   }
   if (section === "footer") {
+    if (v === "footer5") {
+      return [
+        "component",
+        "cta",
+        "menuDark",
+        "menuLight",
+        "socialLinks",
+        "copyright",
+        "sourceNotes",
+      ];
+    }
+    if (v === "footer1") {
+      return ["footer", "copyright", "sourceNotes"];
+    }
+    if (v === "footer2") {
+      return ["component", "footer", "newsletterSection", "sourceNotes"];
+    }
+    if (v === "footer3") {
+      return ["component", "footer", "sourceNotes"];
+    }
+    if (v === "footer4") {
+      return [
+        "component",
+        "darkLogo",
+        "lightLogo",
+        "logoAlt",
+        "copyright",
+        "sourceNotes",
+      ];
+    }
     return ["logo", "tagline", "columns", "socialLinks", "copyrightText"];
   }
-  // default: no preferred order
+  if (section === "services") {
+    return [
+      "component",
+      "sectionId",
+      "isLightDefault",
+      "sectionHead",
+      "items",
+      "sideImage",
+      "detailPathTemplate",
+      "detailPathTemplateLight",
+      "sourceNotes",
+    ];
+  }
+  if (section === "projects") {
+    return [
+      "component",
+      "sectionId",
+      "sectionHead",
+      "items",
+      "detailPathTemplate",
+      "detailPathTemplateLight",
+      "arrowButtonIcon",
+      "sourceNotes",
+    ];
+  }
+  if (section === "contact") {
+    return ["component", "sectionTitle", "subtitle", "form", "sourceNotes"];
+  }
+  if (section === "blogs") {
+    return [
+      "component",
+      "parentClassDefault",
+      "sectionId",
+      "sectionHead",
+      "posts",
+      "recentPosts",
+      "categories",
+      "tags",
+      "readMoreLabel",
+      "readMoreIcon",
+      "sidebar",
+      "sourceNotes",
+    ];
+  }
   return Object.keys(contentRoot || {});
 }
 
-function sortKeysForSection(section, root) {
-  const preferred = preferredKeyOrder(section, root);
-  const index = new Map(preferred.map((k, i) => [k, i]));
-  return Object.keys(root || {}).sort((a, b) => {
-    const ia = index.has(a) ? index.get(a) : Number.MAX_SAFE_INTEGER;
-    const ib = index.has(b) ? index.get(b) : Number.MAX_SAFE_INTEGER;
-    if (ia !== ib) return ia - ib;
-    return String(a).localeCompare(String(b));
-  });
+function sortKeysForSection(section, root, variant) {
+  const preferred = preferredKeyOrder(section, root, variant);
+  return sortKeysList(Object.keys(root || {}), preferred);
+}
+
+function sortNestedKeys(parentKey, keys) {
+  const pref = preferredNestedOrder(parentKey);
+  return sortKeysList(keys, pref);
 }
 
 function renderPrimitiveField({ label, value, path, contentRoot, onChange }) {
@@ -508,25 +883,35 @@ function renderPrimitiveField({ label, value, path, contentRoot, onChange }) {
   wrap.appendChild(inputWrap);
 
   const keyName = path[path.length - 1];
-  if (looksLikeImageField(keyName, value)) {
+  if (looksLikeMediaField(keyName, value)) {
+    const isVideoField = looksLikeVideoField(keyName, value);
     const preview = document.createElement("div");
     preview.className = "preview";
-    const img = document.createElement("img");
+    const mediaEl = isVideoField
+      ? document.createElement("video")
+      : document.createElement("img");
     const resolved = /^https?:\/\//i.test(value)
       ? value
       : `${mediaBaseForPath(value)}${value}`;
-    img.src = resolved;
-    img.alt = "";
-    preview.appendChild(img);
+    mediaEl.src = resolved;
+    if (isVideoField) {
+      mediaEl.controls = true;
+      mediaEl.preload = "metadata";
+      mediaEl.style.width = "100%";
+      mediaEl.style.borderRadius = "8px";
+    } else {
+      mediaEl.alt = "";
+    }
+    preview.appendChild(mediaEl);
 
     const uploadBtn = document.createElement("button");
     uploadBtn.type = "button";
     uploadBtn.className = "btn upload small";
-    uploadBtn.innerHTML = withIcon("image-up", "Upload image");
+    uploadBtn.innerHTML = withIcon("image-up", isVideoField ? "Upload video" : "Upload image");
     uploadBtn.style.marginTop = "8px";
     const fileInput = document.createElement("input");
     fileInput.type = "file";
-    fileInput.accept = "image/*";
+    fileInput.accept = isVideoField ? "video/*" : "image/*";
     fileInput.style.display = "none";
     uploadBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", async () => {
@@ -555,9 +940,11 @@ function renderPrimitiveField({ label, value, path, contentRoot, onChange }) {
         if (!res.ok) throw new Error(data.error || "Upload failed");
         setDeep(contentRoot, path, data.url);
         input.value = data.url;
-        img.src = /^https?:\/\//i.test(data.url) ? data.url : `${base}${data.url}`;
+        mediaEl.src = /^https?:\/\//i.test(data.url)
+          ? data.url
+          : `${base}${data.url}`;
         onChange();
-        toast("Image uploaded successfully 📷", "success");
+        toast(isVideoField ? "Video uploaded successfully 🎬" : "Image uploaded successfully 📷", "success");
       } catch (e) {
         toast(e.message || "Upload failed", "error");
       } finally {
@@ -572,7 +959,15 @@ function renderPrimitiveField({ label, value, path, contentRoot, onChange }) {
   return wrap;
 }
 
-function renderNode({ key, value, path, contentRoot, onChange }) {
+function renderNode({
+  key,
+  value,
+  path,
+  contentRoot,
+  onChange,
+  section,
+  variant,
+}) {
   if (value === null || value === undefined) {
     const wrap = document.createElement("div");
     wrap.className = "field";
@@ -588,7 +983,7 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
     group.className = "group";
     const title = document.createElement("div");
     title.className = "group-title";
-    title.textContent = `${key} [${value.length}]`;
+    title.textContent = `${groupTitleLabel(section, variant, key)} [${value.length}]`;
     group.appendChild(title);
 
     value.forEach((item, index) => {
@@ -600,8 +995,8 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
       sub.appendChild(subTitle);
       const childPath = [...path, index];
       if (item && typeof item === "object" && !Array.isArray(item)) {
-        Object.keys(item)
-          .sort()
+        sortNestedKeys(key, Object.keys(item))
+          .filter((k) => !shouldHideField(k, item))
           .forEach((k) => {
             sub.appendChild(
               renderNode({
@@ -610,13 +1005,15 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
                 path: [...childPath, k],
                 contentRoot,
                 onChange,
+                section,
+                variant,
               }),
             );
           });
       } else {
         sub.appendChild(
           renderPrimitiveField({
-            label: key,
+            label: humanizeKey(key),
             value: item,
             path: childPath,
             contentRoot,
@@ -658,10 +1055,10 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
     group.className = "group";
     const title = document.createElement("div");
     title.className = "group-title";
-    title.textContent = key;
+    title.textContent = groupTitleLabel(section, variant, key);
     group.appendChild(title);
-    Object.keys(value)
-      .sort()
+    sortNestedKeys(key, Object.keys(value))
+      .filter((k) => !shouldHideField(k, value))
       .forEach((k) => {
         group.appendChild(
           renderNode({
@@ -670,6 +1067,8 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
             path: [...path, k],
             contentRoot,
             onChange,
+            section,
+            variant,
           }),
         );
       });
@@ -677,7 +1076,7 @@ function renderNode({ key, value, path, contentRoot, onChange }) {
   }
 
   return renderPrimitiveField({
-    label: key,
+    label: humanizeKey(key),
     value,
     path,
     contentRoot,
@@ -741,6 +1140,7 @@ function renderEditor(section, data) {
       data.variants.find((v) => v.variant === currentVariant)?.content || {},
     ),
   );
+  normalizeEditorContent(section, working);
 
   const paint = (fullReset, userChanged = false) => {
     if (userChanged) {
@@ -755,7 +1155,9 @@ function renderEditor(section, data) {
     }
     if (!userChanged) hasDirtyToastShown = false;
     editorMount.innerHTML = "";
-    sortKeysForSection(section, working).forEach((k) => {
+    sortKeysForSection(section, working, currentVariant)
+      .filter((k) => !shouldHideField(k, working))
+      .forEach((k) => {
         editorMount.appendChild(
           renderNode({
             key: k,
@@ -763,6 +1165,8 @@ function renderEditor(section, data) {
             path: [k],
             contentRoot: working,
             onChange: (hard) => paint(hard, true),
+            section,
+            variant: currentVariant,
           }),
         );
       });
@@ -784,6 +1188,7 @@ function renderEditor(section, data) {
       currentVariant = targetVariant;
       let next = data.variants.find((v) => v.variant === currentVariant);
       working = JSON.parse(JSON.stringify(next?.content || {}));
+      normalizeEditorContent(section, working);
       liveInput.checked = true;
       paint(true);
       await apiFetch(`/api/admin/section/${section}`, {
@@ -794,6 +1199,7 @@ function renderEditor(section, data) {
       data.variants = refreshed.variants;
       next = data.variants.find((v) => v.variant === currentVariant);
       working = JSON.parse(JSON.stringify(next?.content || {}));
+      normalizeEditorContent(section, working);
       syncVariantOptionLabels();
       liveInput.checked = true;
       paint(true);
@@ -803,6 +1209,7 @@ function renderEditor(section, data) {
       currentVariant = previousValue;
       const revert = data.variants.find((v) => v.variant === currentVariant);
       working = JSON.parse(JSON.stringify(revert?.content || {}));
+      normalizeEditorContent(section, working);
       liveInput.checked = !!revert?.isActive;
       paint(true);
       toast(e.message || "Could not switch variant", "error");
@@ -836,11 +1243,13 @@ function renderEditor(section, data) {
     let didSave = false;
     try {
       saveBtn.disabled = true;
+      const payloadContent = JSON.parse(JSON.stringify(working || {}));
+      normalizeEditorContent(section, payloadContent);
       await apiFetch(`/api/admin/section/${section}`, {
         method: "PUT",
         body: JSON.stringify({
           variant: currentVariant,
-          content: working,
+          content: payloadContent,
           isActive: liveInput.checked ? true : undefined,
         }),
       });
@@ -867,6 +1276,7 @@ function renderEditor(section, data) {
 }
 
 async function renderDashboard() {
+  ensurePageStartsAtTop();
   pageTitle.textContent = "Dashboard";
   pageHint.textContent = "Live content map from the public API.";
   view.innerHTML = "";
@@ -893,8 +1303,12 @@ async function renderDashboard() {
       stat.className = "stat";
       stat.textContent = live ? live.variant : "—";
       const hint = document.createElement("div");
-      hint.className = "muted";
-      hint.textContent = live ? "Active variant" : "Not configured";
+      hint.className = "muted status-line";
+      if (live) {
+        hint.innerHTML = `<span class="status-dot is-active" aria-hidden="true"></span>Active variant`;
+      } else {
+        hint.innerHTML = `<span class="status-dot" aria-hidden="true"></span>Not configured`;
+      }
       card.appendChild(head);
       card.appendChild(stat);
       card.appendChild(hint);
@@ -903,6 +1317,7 @@ async function renderDashboard() {
     view.appendChild(grid);
     refreshIcons();
     applyScrollReveal(view);
+    ensurePageStartsAtTop();
     animateViewEnter();
   } catch (e) {
     const banner = document.createElement("div");
@@ -914,6 +1329,7 @@ async function renderDashboard() {
 }
 
 async function renderSection(name) {
+  ensurePageStartsAtTop();
   pageTitle.textContent = `${name[0].toUpperCase()}${name.slice(1)} Section`;
   pageHint.textContent =
     "Select variant, edit fields, toggle visibility, and save.";
@@ -921,7 +1337,7 @@ async function renderSection(name) {
   try {
     const data = await apiFetch(`/api/admin/section/${name}`);
     view.appendChild(renderEditor(name, data));
-    applyScrollReveal(view);
+    ensurePageStartsAtTop();
     animateViewEnter();
   } catch (e) {
     const banner = document.createElement("div");

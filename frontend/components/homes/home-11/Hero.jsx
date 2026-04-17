@@ -55,7 +55,9 @@ export default function Hero({ isLight = false, cmsContent }) {
                     href={getHeroButtonHref(cmsContent, "#")}
                   >
                     <span className="icon-reverse-wrapper">
-                      <span className="btn-text">{getHeroButtonLabel(cmsContent, "Download My CV")}</span>
+                      <span className="btn-text">
+                        {getHeroButtonLabel(cmsContent, "Download My CV")}
+                      </span>
                       <span className="btn-icon">
                         <i className="fa-sharp fa-regular fa-arrow-right" />
                       </span>

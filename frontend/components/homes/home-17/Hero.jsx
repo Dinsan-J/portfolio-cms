@@ -22,7 +22,7 @@ export default function Hero({ cmsContent }) {
             <div className="banner-right-thumb-left-content">
               <span className="pre-title">Welcome to my world</span>
               <h1 className="title">
-                  {getHeroTitleLine(cmsContent, "I’m Jane Cooper")} <br />A{" "}
+                {getHeroTitleLine(cmsContent, "I’m Jane Cooper")} <br />A{" "}
                 <span className="header-caption">
                   <span className="cd-headline clip is-full-width">
                     <TyperComponent strings={typedStrings} />
@@ -32,7 +32,7 @@ export default function Hero({ cmsContent }) {
               <p className="disc">
                 {getHeroDescription(
                   cmsContent,
-                  "A personal portfolio is a collection of your work, achievements, and skills that highlights your abilities and professional growth. It serves as"
+                  "A personal portfolio is a collection of your work, achievements, and skills that highlights your abilities and professional growth. It serves as",
                 )}
               </p>
               <div className="find-me-on">

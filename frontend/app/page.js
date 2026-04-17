@@ -1,18 +1,24 @@
 import Copyright from "@/components/footers/Copyright";
+import Footer2 from "@/components/footers/Footer2";
+import Footer3 from "@/components/footers/Footer3";
+import Footer4 from "@/components/footers/Footer4";
+import Footer5 from "@/components/footers/Footer5";
 import Footer1 from "@/components/footers/Footer1";
 import DynamicHomeHeader from "@/components/headers/DynamicHomeHeader";
 import Blogs from "@/components/common/Blogs";
 import Brands from "@/components/common/Brands";
 import Contact from "@/components/common/Contact2";
+import ContactAlt from "@/components/common/Contact";
+import Contact3 from "@/components/common/Contact3";
 import Education from "@/components/common/Education2";
 import Facts from "@/components/common/Facts";
 import DynamicHomeHero from "@/components/homes/DynamicHomeHero";
 import Portfolio from "@/components/common/Portfolio2";
 import Services from "@/components/common/Services";
-import Services2 from "@/components/common/Services3";
 import Skills from "@/components/common/Skills";
 import Skills2 from "@/components/common/Skills2";
 import Testimonials from "@/components/homes/home-1/Testimonials";
+import TestimonialsAlt from "@/components/common/Testimonials";
 import CommonComponents from "@/components/common/CommonComponents";
 
 export const metadata = {
@@ -45,49 +51,148 @@ function getActiveSectionContent(site, sectionName) {
   return site?.sections?.[sectionName]?.content || null;
 }
 
+const pageSections = [
+  "navbar",
+  "hero",
+  "services",
+  "facts",
+  "skills",
+  "education",
+  "brands",
+  "portfolio",
+  "skills2",
+  "testimonials",
+  "contact",
+  "blogs",
+  "footer",
+  "copyright",
+  "common",
+];
+
+function getSectionData(site, sectionName) {
+  const aboutContent = site?.sections?.about?.content;
+  if (sectionName === "facts" && aboutContent?.homePageFacts) {
+    return { variant: "facts1", content: aboutContent.homePageFacts };
+  }
+  if (sectionName === "skills" && aboutContent?.homePageSkills) {
+    return { variant: "skills1", content: aboutContent.homePageSkills };
+  }
+  if (sectionName === "education" && aboutContent?.homePageEducation) {
+    return { variant: "education1", content: aboutContent.homePageEducation };
+  }
+  if (sectionName === "brands" && aboutContent?.homePageBrands) {
+    return { variant: "brands1", content: aboutContent.homePageBrands };
+  }
+  if (sectionName === "blogs" && aboutContent?.homePageBlogs) {
+    return { variant: "blogs1", content: aboutContent.homePageBlogs };
+  }
+  if (sectionName === "skills2" && aboutContent?.homePageSkills2) {
+    return { variant: "skills21", content: aboutContent.homePageSkills2 };
+  }
+
+  const section = site?.sections?.[sectionName];
+  if (section) return section;
+  if (sectionName === "portfolio" && site?.sections?.projects) {
+    return site.sections.projects;
+  }
+  if (sectionName === "copyright") {
+    if (site?.sections?.footer?.content?.copyright) {
+      return { variant: "copyright1", content: site.sections.footer.content.copyright };
+    }
+    // Keep default copyright visible for non-footer5 variants even when
+    // there is no explicit active copyright section in DB.
+    if (site?.sections?.footer?.variant !== "footer5") {
+      return { variant: "copyright1", content: {} };
+    }
+  }
+  if (sectionName === "common") {
+    return { variant: "common1", content: {} };
+  }
+  return null;
+}
+
 export default async function Home() {
   const site = await getPublicSitePayload();
-  const initialHeroVariant =
-    typeof site?.sections?.hero?.variant === "string" &&
-    /^hero\d+$/.test(site.sections.hero.variant)
-      ? site.sections.hero.variant
-      : "hero1";
-  const initialNavbarVariant =
-    typeof site?.sections?.navbar?.variant === "string" &&
-    /^navbar\d+$/.test(site.sections.navbar.variant)
-      ? site.sections.navbar.variant
-      : "navbar1";
-  const initialHeroContent = site?.sections?.hero?.content || null;
-  const initialNavbarContent = getActiveSectionContent(site, "navbar");
-  const aboutContent = getActiveSectionContent(site, "about");
-  const servicesContent = getActiveSectionContent(site, "services");
-  const projectsContent = getActiveSectionContent(site, "projects");
-  const testimonialsContent = getActiveSectionContent(site, "testimonials");
-  const footerContent = getActiveSectionContent(site, "footer");
+  const componentMap = {
+    navbar: {
+      default: ({ sectionData }) => (
+        <DynamicHomeHeader
+          initialVariant={sectionData?.variant || "navbar1"}
+          initialNavbarContent={sectionData?.content || null}
+        />
+      ),
+    },
+    hero: {
+      default: ({ sectionData }) => (
+        <DynamicHomeHero
+          initialVariant={sectionData?.variant || "hero1"}
+          initialHeroContent={sectionData?.content || null}
+        />
+      ),
+    },
+    services: { services1: Services, default: Services },
+    facts: { default: Facts },
+    skills: { default: Skills },
+    education: { default: Education },
+    brands: { default: Brands },
+    portfolio: { default: Portfolio },
+    skills2: { default: Skills2 },
+    testimonials: {
+      testimonials1: Testimonials,
+      testimonials2: TestimonialsAlt,
+      testimonials3: TestimonialsAlt,
+      default: Testimonials,
+    },
+    contact: { contact1: Contact, contact2: Contact, contact3: Contact, default: Contact },
+    blogs: { default: Blogs },
+    footer: {
+      footer1: Footer1,
+      footer2: Footer2,
+      footer3: Footer3,
+      footer4: Footer4,
+      footer5: Footer5,
+      default: Footer1,
+    },
+    copyright: { default: Copyright },
+    common: { default: CommonComponents },
+  };
+
+  const renderSection = (sectionName) => {
+    const activeFooterVariant = site?.sections?.footer?.variant;
+    if (sectionName === "copyright" && activeFooterVariant === "footer5") {
+      // Footer5 already includes its own bottom copyright strip.
+      return null;
+    }
+    const sectionData = getSectionData(site, sectionName);
+    if (!sectionData && sectionName !== "common") return null;
+    const variant = sectionData?.variant || "default";
+    const variantMap = componentMap[sectionName] || {};
+    const SectionComponent = variantMap[variant] || variantMap.default;
+    if (!SectionComponent) return null;
+    if (sectionName === "navbar") {
+      return (
+        <DynamicHomeHeader
+          key={sectionName}
+          initialVariant={sectionData?.variant || "navbar1"}
+          initialNavbarContent={sectionData?.content || null}
+        />
+      );
+    }
+    if (sectionName === "hero") {
+      return (
+        <DynamicHomeHero
+          key={sectionName}
+          initialVariant={sectionData?.variant || "hero1"}
+          initialHeroContent={sectionData?.content || null}
+        />
+      );
+    }
+    return <SectionComponent key={sectionName} cmsContent={sectionData?.content || null} />;
+  };
+
   return (
     <>
-      <DynamicHomeHeader
-        initialVariant={initialNavbarVariant}
-        initialNavbarContent={initialNavbarContent}
-      />
-      <DynamicHomeHero
-        initialVariant={initialHeroVariant}
-        initialHeroContent={initialHeroContent}
-      />
-      <Services />
-      <Facts cmsContent={aboutContent?.homePageFacts} />
-      <Skills cmsContent={aboutContent?.homePageSkills} />
-      <Services2 cmsContent={servicesContent} />
-      <Education cmsContent={aboutContent?.homePageEducation} />
-      <Brands cmsContent={aboutContent?.homePageBrands} />
-      <Portfolio cmsContent={projectsContent} />
-      <Skills2 />
-      <Testimonials cmsContent={testimonialsContent} />
-      <Contact />
-      <Blogs cmsContent={aboutContent?.homePageBlogs} />
-      <Footer1 cmsContent={footerContent} />
-      <Copyright />
-      <CommonComponents />
+      {pageSections.map((sectionName) => renderSection(sectionName))}
     </>
   );
 }

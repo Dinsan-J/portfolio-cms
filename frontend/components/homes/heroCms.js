@@ -78,8 +78,8 @@ export function getHeroButtonHref(content, fallback = "#") {
 
 export function getHeroMainImage(content, fallback) {
   const candidates = [
-    content?.bannerImage,
     content?.mainImage,
+    content?.bannerImage,
     content?.thumbnailImage,
   ];
 

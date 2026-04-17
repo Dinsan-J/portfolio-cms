@@ -2,11 +2,11 @@ import Blogs from "@/components/blog/Blogs";
 import Copyright from "@/components/footers/Copyright";
 import Footer1 from "@/components/footers/Footer1";
 import Header1 from "@/components/headers/Header1";
-import { allBlogs } from "@/data/blogs";
 import { slugify } from "@/utlis/slugify";
 import Link from "next/link";
 import React from "react";
 import CommonComponents from "@/components/common/CommonComponents";
+import { getBlogCmsData } from "@/lib/blogCms";
 export const metadata = {
   title:
     "Blog || Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
@@ -14,15 +14,16 @@ export const metadata = {
     "Personal Portfolio React Nextjs Template | Freelancer & Developer Portfolio",
 };
 export default async function TagPage({ params }) {
+  const cmsBlog = await getBlogCmsData();
+  const allBlogs = cmsBlog.posts;
   let tagTitle = "";
   const { tag } = await params;
   const blogs = allBlogs.filter((blog) =>
-    blog.tags?.some((el) => slugify(el) == tag)
+    blog.tags?.some((el) => slugify(el) == tag),
   );
-  allBlogs[0].tags.forEach((element) => {
-    if (slugify(element) == tag) {
-      tagTitle = element;
-    }
+  const firstWithTags = allBlogs.find((b) => Array.isArray(b.tags));
+  (firstWithTags?.tags || []).forEach((element) => {
+    if (slugify(element) == tag) tagTitle = element;
   });
   return (
     <>
@@ -54,7 +55,7 @@ export default async function TagPage({ params }) {
             </div>
           </div>
         </div>
-        <Blogs allBlogs={blogs} isLight />
+        <Blogs allBlogs={blogs} cmsData={cmsBlog} isLight />
         <Footer1 />
         <Copyright /> <CommonComponents />
       </div>

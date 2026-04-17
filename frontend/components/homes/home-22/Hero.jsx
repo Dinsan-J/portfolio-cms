@@ -1,6 +1,18 @@
 import React from "react";
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
 
-export default function Hero() {
+export default function Hero({ cmsContent }) {
+  const title = cmsContent?.titleLine1 || cmsContent?.headings?.h1?.[0] || "Julian Tobias";
+  const subtitle =
+    cmsContent?.description ||
+    cmsContent?.paragraphs?.[0] ||
+    "German Super Model, Influencer & Youtuber";
+  const videoSrc = resolveCmsMediaSrc(
+    cmsContent?.heroVideo?.src ||
+      cmsContent?.mainImage?.src ||
+      cmsContent?.bannerImage?.src ||
+      "/assets/images/video/model.mp4",
+  );
   return (
     <div
       className="tmp-banner-one-area model-style-banner with-instructor style-2"
@@ -12,9 +24,9 @@ export default function Hero() {
           <div className="row align-items-center">
             <div className="col-lg-12">
               <div className="inner banner-model-15">
-                <h1 className="title tmp-fade-in">Julian Tobias</h1>
+                <h1 className="title tmp-fade-in">{title}</h1>
                 <p className="disc tmp-fade-in">
-                  German Super Model, Influencer &amp; Youtuber
+                  {subtitle}
                 </p>
               </div>
             </div>
@@ -52,7 +64,7 @@ export default function Hero() {
       </div>
       <div className="hero-bg-video">
         <video autoPlay muted loop id="myVideo">
-          <source src="/assets/images/video/model.mp4" type="video/mp4" />
+          <source src={videoSrc} type="video/mp4" />
         </video>
       </div>
     </div>

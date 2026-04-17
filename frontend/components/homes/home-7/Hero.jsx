@@ -54,7 +54,7 @@ export default function Hero({ isLight = false, cmsContent }) {
                 <p className="disc tmp-scroll-trigger tmp-fade-in animation-order-3">
                   {getHeroDescription(
                     cmsContent,
-                    "A personal portfolio is a collection of your work, achievements, and skills that highlights your abilities and professional growth. It serves as"
+                    "A personal portfolio is a collection of your work, achievements, and skills that highlights your abilities and professional growth. It serves as",
                   )}
                 </p>
                 <div className="button-area-banner-one tmp-scroll-trigger tmp-fade-in animation-order-4">
@@ -63,7 +63,9 @@ export default function Hero({ isLight = false, cmsContent }) {
                     href={getHeroButtonHref(cmsContent, "/portfolio-details")}
                   >
                     <span className="icon-reverse-wrapper">
-                      <span className="btn-text">{getHeroButtonLabel(cmsContent, "View Portfolio")}</span>
+                      <span className="btn-text">
+                        {getHeroButtonLabel(cmsContent, "View Portfolio")}
+                      </span>
                       <span className="btn-icon">
                         <i className="fa-sharp fa-regular fa-arrow-right" />
                       </span>

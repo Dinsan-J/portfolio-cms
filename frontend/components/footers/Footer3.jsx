@@ -1,18 +1,35 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import Demomodal from "../modals/Demomodal";
-import Chat from "../common/Chat";
-import DemoToggler from "../common/DemoToggler";
-import ScrollTop from "../common/ScrollTop";
-import Sidebar from "../headers/Sidebar";
-import MobileMenu from "../headers/MobileMenu";
-import MobileMenuOnepage from "../headers/MobileMenuOnepage";
 import { footerLinks, footerLinksWhite } from "@/data/footerLinks";
-export default function Footer3({
-  darkLogo = "/assets/images/logo/white-logo-reeni.png",
-  lightLogo = "/assets/images/logo/logo-white.png",
-}) {
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
+
+export default function Footer3({ cmsContent }) {
+  const f = cmsContent?.footer || {};
+  const darkLogo = resolveCmsMediaSrc(
+    f.darkLogo || "/assets/images/logo/white-logo-reeni.png",
+  );
+  const lightLogo = resolveCmsMediaSrc(
+    f.lightLogo || "/assets/images/logo/logo-white.png",
+  );
+  const logoAlt =
+    f.logoAlt ||
+    "Reeni - Personal Portfolio HTML Template for developers and freelancers";
+  const descriptionLine1 = f.descriptionLine1 || "Get Ready";
+  const descriptionLine2 = f.descriptionLine2 || "Create Great";
+  const newsletterPlaceholder =
+    f.newsletter?.placeholder || "Email Adress";
+  const newsletterIconClass =
+    f.newsletter?.envelopeIconClass || "fa-regular fa-envelope";
+  const quickLinksTitle = f.quickLinksTitle || "Quick Link";
+  const darkLinks = Array.isArray(f.footerLinks) ? f.footerLinks : footerLinks;
+  const lightLinks = Array.isArray(f.footerLinksWhite)
+    ? f.footerLinksWhite
+    : footerLinksWhite;
+  const contactTitle = f.contactTitle || "Contact";
+  const contactItems = Array.isArray(f.contactItems) ? f.contactItems : [];
+  const socialLinks = Array.isArray(f.socialLinks) ? f.socialLinks : [];
+
   return (
     <>
       <footer className="footer-area footer-style-one-wrapper  tmp-section-gap">
@@ -25,14 +42,14 @@ export default function Footer3({
                     <Link href={`/`}>
                       <Image
                         className="logo-dark"
-                        alt="Reeni - Personal Portfolio HTML Template for developers and freelancers"
+                        alt={logoAlt}
                         src={darkLogo}
                         width={121}
                         height={41}
                       />
                       <Image
                         className="logo-white"
-                        alt="Reeni - Personal Portfolio HTML Template for developers and freelancers"
+                        alt={logoAlt}
                         src={lightLogo}
                         width={121}
                         height={40}
@@ -40,31 +57,35 @@ export default function Footer3({
                     </Link>
                   </div>
                   <p className="description">
-                    <span>Get Ready</span> To <br /> Create Great
+                    <span>{descriptionLine1}</span> To <br /> {descriptionLine2}
                   </p>
                   <form
                     onSubmit={(e) => e.preventDefault()}
                     className="newsletter-form-1 mt--40"
                   >
-                    <input type="email" placeholder="Email Adress" />
+                    <input
+                      type="email"
+                      placeholder={newsletterPlaceholder}
+                      suppressHydrationWarning
+                    />
                     <span className="form-icon">
-                      <i className="fa-regular fa-envelope" />
+                      <i className={newsletterIconClass} />
                     </span>
                   </form>
                 </div>
               </div>
               <div className="col-lg-4 col-md-6">
                 <div className="single-footer-wrapper quick-link-wrap">
-                  <h5 className="ft-title">Quick Link</h5>
+                  <h5 className="ft-title">{quickLinksTitle}</h5>
                   <ul className="ft-link tmp-link-animation dark-content">
-                    {footerLinks.map((item, index) => (
+                    {darkLinks.map((item, index) => (
                       <li key={index}>
                         <Link href={item.href}>{item.label}</Link>
                       </li>
                     ))}
                   </ul>
                   <ul className="ft-link tmp-link-animation light-content2">
-                    {footerLinksWhite.map((item, index) => (
+                    {lightLinks.map((item, index) => (
                       <li key={index}>
                         <Link href={item.href}>{item.label}</Link>
                       </li>
@@ -74,40 +95,28 @@ export default function Footer3({
               </div>
               <div className="col-lg-3 col-md-6">
                 <div className="single-footer-wrapper contact-wrap">
-                  <h5 className="ft-title">Contact </h5>
+                  <h5 className="ft-title">{contactTitle}</h5>
                   <ul className="ft-link tmp-link-animation">
-                    <li>
-                      <span className="ft-icon">
-                        <i className="fa-solid fa-envelope" />
-                      </span>
-                      <a href="#">nafiz125@gmail.com</a>
-                    </li>
-                    <li>
-                      <span className="ft-icon">
-                        <i className="fa-solid fa-location-dot" />
-                      </span>
-                      3891 Ranchview Dr. Richardson
-                    </li>
-                    <li>
-                      <span className="ft-icon">
-                        <i className="fa-solid fa-phone" />
-                      </span>
-                      <a href="#">01245789321</a>
-                    </li>
+                    {contactItems.map((item, index) => (
+                      <li key={index}>
+                        <span className="ft-icon">
+                          <i className={item.iconClass} />
+                        </span>
+                        {item.type === "email" ||
+                        item.type === "phone" ? (
+                          <a href={item.href || "#"}>{item.display}</a>
+                        ) : (
+                          item.display
+                        )}
+                      </li>
+                    ))}
                   </ul>
                   <div className="social-link footer">
-                    <a href="#">
-                      <i className="fa-brands fa-instagram" />
-                    </a>
-                    <a href="#">
-                      <i className="fa-brands fa-linkedin-in" />
-                    </a>
-                    <a href="#">
-                      <i className="fa-brands fa-twitter" />
-                    </a>
-                    <a href="#">
-                      <i className="fa-brands fa-facebook-f" />
-                    </a>
+                    {socialLinks.map((s, index) => (
+                      <a href={s.href || "#"} key={index}>
+                        <i className={s.iconClass} />
+                      </a>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -122,7 +131,7 @@ export default function Footer3({
             src="/assets/images/footer/footer-bg-img.png"
           />
         </div>
-      </footer>{" "}
+      </footer>
     </>
   );
 }

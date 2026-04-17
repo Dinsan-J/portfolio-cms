@@ -58,7 +58,9 @@ export default function DynamicHomeHero({
   initialVariant = "hero1",
   initialHeroContent = null,
 }) {
-  const [variant, setVariant] = useState(() => normalizeVariant(initialVariant));
+  const [variant, setVariant] = useState(() =>
+    normalizeVariant(initialVariant),
+  );
   const [heroContent, setHeroContent] = useState(initialHeroContent);
 
   useEffect(() => {

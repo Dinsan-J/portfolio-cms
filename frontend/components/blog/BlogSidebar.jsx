@@ -4,8 +4,23 @@ import React from "react";
 
 import Link from "next/link";
 import { slugify } from "@/utlis/slugify";
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
 
-export default function BlogSidebar({ isLight = false }) {
+export default function BlogSidebar({ isLight = false, cmsData }) {
+  const blogItems =
+    Array.isArray(cmsData?.posts) && cmsData.posts.length ? cmsData.posts : allBlogs;
+  const categoryItems =
+    Array.isArray(cmsData?.categories) && cmsData.categories.length
+      ? cmsData.categories
+      : categories;
+  const recentPosts =
+    Array.isArray(cmsData?.recentPosts) && cmsData.recentPosts.length
+      ? cmsData.recentPosts
+      : posts;
+  const tagItems =
+    Array.isArray(cmsData?.tags) && cmsData.tags.length ? cmsData.tags : tags;
+  const about = cmsData?.sidebarAbout || {};
+
   return (
     <div className="tmp-sidebar">
       <div className="signle-side-bar search-area tmponhover">
@@ -23,10 +38,10 @@ export default function BlogSidebar({ isLight = false }) {
           <h3 className="title">Category</h3>
         </div>
         <div className="body">
-          {categories.map((post, index) => (
+          {categoryItems.map((post, index) => (
             <Link
               href={`/blog${isLight ? "-white" : ""}/category/${slugify(
-                post.title
+                post.title,
               )}`}
               className="single-post"
               key={index}
@@ -38,8 +53,8 @@ export default function BlogSidebar({ isLight = false }) {
               <span className="post-num">
                 (
                 {
-                  allBlogs.filter((blog) =>
-                    blog.categories?.includes(post.title)
+                  blogItems.filter((blog) =>
+                    blog.categories?.includes(post.title),
                   ).length
                 }
                 )
@@ -53,10 +68,15 @@ export default function BlogSidebar({ isLight = false }) {
           <h3 className="title">Recent Post</h3>
         </div>
         <div className="body">
-          {posts.map((post) => (
+          {recentPosts.map((post) => (
             <div key={post.id} className="single-post-card tmp-hover-link">
               <div className="single-post-card-img">
-                <Image alt="" src={post.imageSrc} width={82} height={92} />
+                <Image
+                  alt={post.altText || ""}
+                  src={resolveCmsMediaSrc(post.imageSrc)}
+                  width={82}
+                  height={92}
+                />
               </div>
               <div className="single-post-right">
                 <div className="single-post-top">
@@ -83,38 +103,41 @@ export default function BlogSidebar({ isLight = false }) {
           <h3 className="title">About Me</h3>
         </div>
         <div className="body">
-          <div className="about-me-details">
+            <div className="about-me-details">
             <div className="about-me-details-head">
               <div className="about-me-img">
                 <Image
                   alt="about-me-user-img"
-                  src="/assets/images/blog/about-me-user-img.png"
+                    src={resolveCmsMediaSrc(
+                      about.imageSrc || "/assets/images/blog/about-me-user-img.png",
+                    )}
                   width={600}
                   height={600}
                 />
               </div>
               <div className="about-me-right-content">
-                <h3 className="title">Fatima Afrafy</h3>
-                <p className="para">UI/UX Designer</p>
+                  <h3 className="title">{about.name || "Fatima Afrafy"}</h3>
+                  <p className="para">{about.role || "UI/UX Designer"}</p>
                 <div className="social-link">
-                  <a href="#">
-                    <i className="fa-brands fa-instagram" />
-                  </a>
-                  <a href="#">
-                    <i className="fa-brands fa-linkedin-in" />
-                  </a>
-                  <a href="#">
-                    <i className="fa-brands fa-twitter" />
-                  </a>
-                  <a href="#">
-                    <i className="fa-brands fa-facebook-f" />
-                  </a>
+                    {(Array.isArray(about.socialLinks) && about.socialLinks.length
+                      ? about.socialLinks
+                      : [
+                          { iconClass: "fa-brands fa-instagram", href: "#" },
+                          { iconClass: "fa-brands fa-linkedin-in", href: "#" },
+                          { iconClass: "fa-brands fa-twitter", href: "#" },
+                          { iconClass: "fa-brands fa-facebook-f", href: "#" },
+                        ]
+                    ).map((s, i) => (
+                      <a href={s.href || "#"} key={i}>
+                        <i className={s.iconClass} />
+                      </a>
+                    ))}
                 </div>
               </div>
             </div>
             <p className="about-me-para">
-              Aliquam eros justo, posuere loborti viverra ullamcorper posuere
-              viverra .Aliquam eros justo, posuere justo, posuere.
+                {about.description ||
+                  "Aliquam eros justo, posuere loborti viverra ullamcorper posuere viverra .Aliquam eros justo, posuere justo, posuere."}
             </p>
           </div>
         </div>
@@ -125,7 +148,7 @@ export default function BlogSidebar({ isLight = false }) {
         </div>
         <div className="body">
           <div className="tags-wrapper">
-            {tags.map((tag, index) => (
+            {tagItems.map((tag, index) => (
               <Link
                 href={`/blog${isLight ? "-white" : ""}/tag/${slugify(tag)}`}
                 className="tag-link"

@@ -26,7 +26,9 @@ export default function DynamicHomeHeader({
   initialVariant = "navbar1",
   initialNavbarContent = null,
 }) {
-  const [variant, setVariant] = useState(() => normalizeVariant(initialVariant));
+  const [variant, setVariant] = useState(() =>
+    normalizeVariant(initialVariant),
+  );
   const [navbarContent, setNavbarContent] = useState(initialNavbarContent);
 
   useEffect(() => {
@@ -59,4 +61,3 @@ export default function DynamicHomeHeader({
   const Comp = HEADER_BY_VARIANT[variant] || HEADER_BY_VARIANT.navbar1;
   return <Comp cmsContent={navbarContent} />;
 }
-

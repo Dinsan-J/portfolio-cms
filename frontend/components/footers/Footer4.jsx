@@ -1,17 +1,26 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Demomodal from "../modals/Demomodal";
-import Chat from "../common/Chat";
-import DemoToggler from "../common/DemoToggler";
-import ScrollTop from "../common/ScrollTop";
-import Sidebar from "../headers/Sidebar";
-import MobileMenu from "../headers/MobileMenu";
-import MobileMenuOnepage from "../headers/MobileMenuOnepage";
-export default function Footer4({
-  darkLogo = "/assets/images/logo/white-logo-reeni.png",
-  lightLogo = "/assets/images/logo/logo-white.png",
-}) {
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
+
+export default function Footer4({ cmsContent }) {
+  const darkLogo = resolveCmsMediaSrc(
+    cmsContent?.darkLogo || "/assets/images/logo/white-logo-reeni.png",
+  );
+  const lightLogo = resolveCmsMediaSrc(
+    cmsContent?.lightLogo || "/assets/images/logo/logo-white.png",
+  );
+  const logoAlt =
+    cmsContent?.logoAlt ||
+    "Reeni - Personal Portfolio HTML Template for developers and freelancers";
+  const copy = cmsContent?.copyright || {};
+  const yearSuffix = copy.linePrefix || ". All rights reserved by";
+  const ownerLabel = copy.ownerLabel || "Inversweb.";
+  const ownerHref =
+    copy.ownerHref ||
+    "https://themeforest.net/user/inversweb/portfolio";
+  const year = new Date().getFullYear();
+
   return (
     <>
       <div className="tmp-footer-area footer-style-4 tmp-section-gap">
@@ -23,7 +32,7 @@ export default function Footer4({
                   <Link href={`/`}>
                     <Image
                       className="logo-dark dark-content"
-                      alt="Reeni - Personal Portfolio HTML Template for developers and freelancers"
+                      alt={logoAlt}
                       src={darkLogo}
                       width={121}
                       height={41}
@@ -34,22 +43,19 @@ export default function Footer4({
                     >
                       <Image
                         className=""
-                        alt="Reeni - Personal Portfolio HTML Template for developers and freelancers"
+                        alt={logoAlt}
                         src={lightLogo}
                         width={121}
                         height={40}
-                      />{" "}
+                      />
                     </div>
                   </Link>
                 </div>
                 <p className="description mt--30">
-                  © {new Date().getFullYear()} . All rights reserved by
-                  <a
-                    target="_blank"
-                    href="https://themeforest.net/user/inversweb/portfolio"
-                  >
-                    {" "}
-                    Inversweb.
+                  © {year}
+                  {yearSuffix}
+                  <a target="_blank" rel="noreferrer" href={ownerHref}>
+                    {ownerLabel}
                   </a>
                 </p>
               </div>

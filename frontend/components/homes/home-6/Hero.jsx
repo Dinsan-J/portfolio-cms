@@ -5,11 +5,19 @@ import {
   getHeroButtonHref,
   getHeroButtonLabel,
   getHeroDescription,
+  getHeroMainImage,
   getHeroSubtitle,
   getHeroTitleLine,
 } from "@/components/homes/heroCms";
+import { resolveCmsMediaSrc } from "@/lib/cmsMedia";
 
 export default function Hero({ cmsContent }) {
+  const mainImage = getHeroMainImage(cmsContent, {
+    src: "/assets/images/banner/banner-user-image-six.png",
+    width: 531,
+    height: 531,
+    alt: "banner-img-3",
+  });
   return (
     <div className="rpp-banner-six-area">
       <div className="container">
@@ -20,10 +28,10 @@ export default function Hero({ cmsContent }) {
                 <div className="bg-benner-img-six">
                   <Image
                     className="tmp-scroll-trigger tmp-zoom-in animation-order-1"
-                    alt="banner-img-3"
-                    src="/assets/images/banner/banner-user-image-six.png"
-                    width={531}
-                    height={531}
+                    alt={mainImage?.alt || "banner-img-3"}
+                    src={resolveCmsMediaSrc(mainImage?.src)}
+                    width={Number(mainImage?.width) || 531}
+                    height={Number(mainImage?.height) || 531}
                   />
                 </div>
               </div>

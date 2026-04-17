@@ -5,8 +5,14 @@ import { toast } from "react-toastify";
 
 export default function Contact({
   parentClass = "get-in-touch-area tmp-section-gapTop",
+  cmsContent,
 }) {
   const form = useRef();
+  const sectionHead = cmsContent?.sectionHead || {};
+  const placeholders = cmsContent?.form?.placeholders || {};
+  const fieldNames = cmsContent?.form?.fieldNames || {};
+  const submitLabel = cmsContent?.form?.submitButtonText || "Appointment Now";
+  const submitIcon = cmsContent?.form?.submitIconClass || "fa-sharp fa-regular fa-arrow-right";
 
   const sandMail = (e) => {
     e.preventDefault();
@@ -24,7 +30,7 @@ export default function Contact({
         {
           // Public API key for authentication with EmailJS
           publicKey: "D79JdTqxXVCcQBXL4",
-        }
+        },
       )
       .then((res) => {
         if (res.status == 200) {
@@ -58,15 +64,14 @@ export default function Contact({
               <div className="col-lg-5">
                 <div className="section-head text-align-left">
                   <div className="section-sub-title tmp-scroll-trigger tmp-fade-in animation-order-1">
-                    <span className="subtitle">GET IN TOUCH</span>
+                    <span className="subtitle">{sectionHead.subtitle || "GET IN TOUCH"}</span>
                   </div>
                   <h2 className="title split-collab tmp-scroll-trigger tmp-fade-in animation-order-2">
-                    Elevate your brand with Me
+                    {sectionHead.title || "Elevate your brand with Me"}
                   </h2>
                   <p className="description tmp-scroll-trigger tmp-fade-in animation-order-3">
-                    ished fact that a reader will be distrol acted bioiiy desig
-                    ished fact that a reader will acted ished fact that a reader
-                    will be distrol acted
+                    {sectionHead.description ||
+                      "ished fact that a reader will be distrol acted bioiiy desig ished fact that a reader will acted ished fact that a reader will be distrol acted"}
                   </p>
                 </div>
               </div>
@@ -86,9 +91,9 @@ export default function Contact({
                           <div className="form-group">
                             <input
                               className="input-field"
-                              name="name"
+                              name={fieldNames.name || "name"}
                               id="contact-name"
-                              placeholder="Your Name"
+                              placeholder={placeholders.name || "Your Name"}
                               type="text"
                               required
                               suppressHydrationWarning
@@ -100,7 +105,7 @@ export default function Contact({
                             <input
                               className="input-field"
                               id="contact-phone"
-                              placeholder="Phone Number"
+                              placeholder={placeholders.phone || "Phone Number"}
                               type="tel"
                               required
                               suppressHydrationWarning
@@ -112,8 +117,8 @@ export default function Contact({
                             <input
                               className="input-field"
                               id="contact-email"
-                              name="email"
-                              placeholder="Your Email"
+                              name={fieldNames.email || "email"}
+                              placeholder={placeholders.email || "Your Email"}
                               type="email"
                               required
                               suppressHydrationWarning
@@ -126,8 +131,8 @@ export default function Contact({
                               className="input-field"
                               type="text"
                               id="subject"
-                              name="subject"
-                              placeholder="Subject"
+                              name={fieldNames.subject || "subject"}
+                              placeholder={placeholders.subject || "Subject"}
                               suppressHydrationWarning
                             />
                           </div>
@@ -136,8 +141,8 @@ export default function Contact({
                           <div className="form-group">
                             <textarea
                               className="input-field"
-                              placeholder="Your Message"
-                              name="message"
+                              placeholder={placeholders.message || "Your Message"}
+                              name={fieldNames.message || "message"}
                               id="contact-message"
                               required
                               defaultValue={""}
@@ -156,13 +161,13 @@ export default function Contact({
                             >
                               <span className="icon-reverse-wrapper">
                                 <span className="btn-text">
-                                  Appointment Now
+                                  {submitLabel}
                                 </span>
                                 <span className="btn-icon">
-                                  <i className="fa-sharp fa-regular fa-arrow-right" />
+                                  <i className={submitIcon} />
                                 </span>
                                 <span className="btn-icon">
-                                  <i className="fa-sharp fa-regular fa-arrow-right" />
+                                  <i className={submitIcon} />
                                 </span>
                               </span>
                             </button>

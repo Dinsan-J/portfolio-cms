@@ -40,10 +40,11 @@ const upload = multer({
   // So we must not decide storage mode at import time based on env vars.
   // Always use memoryStorage; if Cloudinary isn't configured we write the buffer to disk.
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 120 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype?.startsWith("image/")) {
-      return cb(new Error("Only image files are allowed"));
+    const mime = String(file.mimetype || "");
+    if (!mime.startsWith("image/") && !mime.startsWith("video/")) {
+      return cb(new Error("Only image/video files are allowed"));
     }
     cb(null, true);
   },
@@ -76,11 +77,14 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 
     const safeOriginal = req.file.originalname.replace(/[^\w.\-]+/g, "_");
     const folder = process.env.CLOUDINARY_FOLDER || "portfolio-cms";
+    const resourceType = req.file.mimetype?.startsWith("video/")
+      ? "video"
+      : "image";
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder,
-          resource_type: "image",
+          resource_type: resourceType,
           use_filename: true,
           unique_filename: true,
           filename_override: safeOriginal.replace(/\.[^/.]+$/, ""),
@@ -101,16 +105,36 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       storage: "cloudinary",
     });
   } catch (err) {
-    return res.status(400).json({
-      error: err?.message || "Cloudinary upload failed",
-    });
+    // Fallback: if Cloudinary fails (common for restricted video plans),
+    // persist locally so admin upload flow still works.
+    try {
+      const filename = safeFilename(req.file.originalname);
+      const dir = ensureUploadsDir();
+      const outPath = path.join(dir, filename);
+      await fs.promises.writeFile(outPath, req.file.buffer);
+      const url = `/uploads/${filename}`;
+      return res.json({
+        url,
+        filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        storage: "local-fallback",
+      });
+    } catch (localErr) {
+      return res.status(400).json({
+        error:
+          localErr?.message ||
+          err?.message ||
+          "Cloudinary upload failed",
+      });
+    }
   }
 });
 
 router.use((err, _req, res, _next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ error: "Image too large (max 25MB)" });
+      return res.status(400).json({ error: "File too large (max 120MB)" });
     }
     return res.status(400).json({ error: err.message });
   }

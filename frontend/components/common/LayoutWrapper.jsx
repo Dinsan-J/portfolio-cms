@@ -384,12 +384,28 @@ export default function LayoutWrapper({ children }) {
     return () => observer.disconnect();
   }, [pathname]);
   useEffect(() => {
-    const WOW = require("@/utlis/wow");
-    const wow = new WOW.default({
-      mobile: false,
-      live: false,
-    });
-    wow.init();
+    let wowInstance = null;
+    let cancelled = false;
+    import("@/utlis/wow")
+      .then((WOWModule) => {
+        if (cancelled) return;
+        const WOWClass = WOWModule?.default;
+        if (!WOWClass) return;
+        wowInstance = new WOWClass({
+          mobile: false,
+          live: false,
+        });
+        wowInstance.init();
+      })
+      .catch(() => {
+        // Keep page usable even if animation helper fails to load.
+      });
+    return () => {
+      cancelled = true;
+      if (wowInstance && typeof wowInstance.stop === "function") {
+        wowInstance.stop();
+      }
+    };
   }, [pathname]);
 
   return <>{children}</>;
