@@ -797,6 +797,7 @@ function shouldHideField(key, parentValue) {
       "layout",
       "animationOrder",
       "sourceFile",
+      "isLightDefault",
     ].includes(k)
   ) {
     return true;
