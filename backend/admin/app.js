@@ -1,13 +1,13 @@
 const SECTIONS = [
   "navbar",
   "hero",
+  "services",
   "about",
   "facts",
   "skills",
   "education",
   "portfolio",
   "skills2",
-  "services",
   "projects",
   "testimonials",
   "contact",
@@ -40,6 +40,14 @@ const view = document.getElementById("view");
 const pageTitle = document.getElementById("pageTitle");
 const pageHint = document.getElementById("pageHint");
 const saveStatus = document.getElementById("saveStatus");
+const sectionSaveMount = document.getElementById("sectionSaveMount");
+const SECTION_PAGE_HINTS = {
+  projects:
+    "When live, this content is used for the home page project block (preferred over the Portfolio section when both exist).",
+  portfolio:
+    "Optional alternate source for the home grid. If Projects is also live, the site uses Projects first.",
+};
+
 const SECTION_ICONS = {
   dashboard: "house",
   navbar: "menu",
@@ -58,6 +66,299 @@ const SECTION_ICONS = {
   footer: "layout-template",
   copyright: "copyright",
 };
+
+const LS_ADMIN_SEARCH_FOCUS = "portfolioCmsAdminSearchFocus";
+const SEARCH_INDEX_TTL_MS = 120000;
+let adminSearchIndex = null;
+let adminSearchIndexAt = 0;
+let adminSearchIndexPromise = null;
+
+const adminGlobalSearch = document.getElementById("adminGlobalSearch");
+const adminSearchResults = document.getElementById("adminSearchResults");
+const topNavSearchWrap = document.getElementById("topNavSearchWrap");
+
+function encodeFieldRef(path) {
+  return encodeURIComponent(JSON.stringify(path));
+}
+
+function findFieldElementByPath(path) {
+  const enc = encodeURIComponent(JSON.stringify(path));
+  return document.querySelector(`[data-field-ref="${CSS.escape(enc)}"]`);
+}
+
+function attachFieldSearchMeta(wrap, path, section, variant) {
+  if (!wrap || !section || !path) return;
+  wrap.setAttribute("data-field-ref", encodeFieldRef(path));
+  wrap.setAttribute("data-admin-section", section);
+  if (variant) wrap.setAttribute("data-admin-variant", variant);
+}
+
+function sectionTitleCase(name) {
+  if (!name) return "";
+  return name.length ? name[0].toUpperCase() + name.slice(1) : name;
+}
+
+function pathLabelForSearch(parts) {
+  return parts
+    .map((p) => (typeof p === "number" ? `#${p + 1}` : humanizeKey(p)))
+    .join(" › ");
+}
+
+function walkContentForSearch(obj, parts, section, variantName, out) {
+  if (obj === null || obj === undefined) return;
+  const t = typeof obj;
+  if (t === "string" || t === "number" || t === "boolean") {
+    const text = String(obj);
+    const keyPart = parts.length ? parts[parts.length - 1] : "";
+    const fieldLabel =
+      typeof keyPart === "string"
+        ? humanizeKey(keyPart)
+        : `Item ${(keyPart || 0) + 1}`;
+    const pathLabel = pathLabelForSearch(parts);
+    out.push({
+      section,
+      variant: variantName,
+      path: parts.slice(),
+      pathLabel,
+      fieldLabel,
+      preview: text.length > 140 ? `${text.slice(0, 140)}…` : text,
+      haystack: [
+        section,
+        variantName,
+        fieldLabel,
+        pathLabel,
+        text,
+        parts.join(" "),
+      ]
+        .join("\n")
+        .toLowerCase(),
+    });
+    return;
+  }
+  if (Array.isArray(obj)) {
+    obj.forEach((item, i) => {
+      walkContentForSearch(item, [...parts, i], section, variantName, out);
+    });
+    return;
+  }
+  if (t === "object") {
+    for (const k of Object.keys(obj)) {
+      walkContentForSearch(obj[k], [...parts, k], section, variantName, out);
+    }
+  }
+}
+
+function invalidateAdminSearchIndex() {
+  adminSearchIndex = null;
+  adminSearchIndexAt = 0;
+}
+
+function clearSectionSaveMount() {
+  if (sectionSaveMount) sectionSaveMount.innerHTML = "";
+}
+
+async function buildAdminSearchIndex(force = false) {
+  const now = Date.now();
+  if (
+    !force &&
+    adminSearchIndex &&
+    now - adminSearchIndexAt < SEARCH_INDEX_TTL_MS
+  ) {
+    return adminSearchIndex;
+  }
+  if (adminSearchIndexPromise) return adminSearchIndexPromise;
+  adminSearchIndexPromise = (async () => {
+    const rows = [];
+    SECTIONS.forEach((name) => {
+      const nice = sectionTitleCase(name);
+      rows.push({
+        section: name,
+        variant: null,
+        path: null,
+        pathLabel: `Section editor`,
+        fieldLabel: nice,
+        preview: `Open ${nice} to edit all fields`,
+        haystack: `${name} ${nice} section editor`.toLowerCase(),
+        isSectionJump: true,
+      });
+    });
+    await Promise.all(
+      SECTIONS.map(async (name) => {
+        try {
+          const data = await apiFetch(`/api/admin/section/${name}`);
+          if (!data?.variants?.length) return;
+          for (const v of data.variants) {
+            const content = v.content;
+            if (!content || typeof content !== "object") continue;
+            walkContentForSearch(content, [], name, v.variant, rows);
+          }
+        } catch {
+          /* skip section */
+        }
+      }),
+    );
+    adminSearchIndex = rows;
+    adminSearchIndexAt = Date.now();
+    adminSearchIndexPromise = null;
+    return rows;
+  })();
+  return adminSearchIndexPromise;
+}
+
+function filterSearchRows(rows, q) {
+  const query = q.trim().toLowerCase();
+  if (!query) return [];
+  const out = rows.filter((r) => r.haystack.includes(query));
+  out.sort((a, b) => {
+    const al = a.preview?.length || 0;
+    const bl = b.preview?.length || 0;
+    if (al !== bl) return al - bl;
+    return String(a.pathLabel).localeCompare(String(b.pathLabel));
+  });
+  return out.slice(0, 60);
+}
+
+function closeSearchDropdown() {
+  if (adminSearchResults) adminSearchResults.classList.add("hidden");
+  adminGlobalSearch?.setAttribute("aria-expanded", "false");
+}
+
+function displaySearchMatches(matches) {
+  if (!adminSearchResults) return;
+  adminSearchResults.innerHTML = "";
+  if (!matches.length) {
+    const empty = document.createElement("div");
+    empty.className = "admin-search-empty";
+    empty.textContent = "No matches. Try different keywords.";
+    adminSearchResults.appendChild(empty);
+    adminSearchResults.classList.remove("hidden");
+    adminGlobalSearch?.setAttribute("aria-expanded", "true");
+    return;
+  }
+  for (const r of matches) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "admin-search-item";
+    btn.setAttribute("role", "option");
+    const title = document.createElement("div");
+    title.className = "admin-search-item-title";
+    const lab = document.createElement("span");
+    lab.textContent = r.fieldLabel;
+    title.appendChild(lab);
+    const kbdSec = document.createElement("kbd");
+    kbdSec.textContent = r.section;
+    title.appendChild(kbdSec);
+    if (r.variant) {
+      const kbdV = document.createElement("kbd");
+      kbdV.textContent = r.variant;
+      title.appendChild(kbdV);
+    }
+    btn.appendChild(title);
+    const pathRow = document.createElement("div");
+    pathRow.className = "admin-search-item-path";
+    pathRow.textContent = r.pathLabel || "";
+    btn.appendChild(pathRow);
+    const prev = document.createElement("div");
+    prev.className = "admin-search-item-preview";
+    prev.textContent = r.preview || "";
+    btn.appendChild(prev);
+    btn.addEventListener("click", () => {
+      goSearchResult(r);
+    });
+    adminSearchResults.appendChild(btn);
+  }
+  adminSearchResults.classList.remove("hidden");
+  adminGlobalSearch?.setAttribute("aria-expanded", "true");
+}
+
+function navigateAdminToSection(sectionName) {
+  const target = `#/${sectionName}`;
+  const norm = (h) =>
+    String(h || "")
+      .replace(/^#/, "")
+      .replace(/\/$/, "") || "/";
+  if (norm(window.location.hash) === norm(target)) {
+    if (getJwt()) void handleRoute();
+    return;
+  }
+  window.location.hash = target;
+}
+
+function goSearchResult(r) {
+  closeSearchDropdown();
+  if (adminGlobalSearch) adminGlobalSearch.value = "";
+  if (r.isSectionJump) {
+    navigateAdminToSection(r.section);
+    return;
+  }
+  sessionStorage.setItem(
+    LS_ADMIN_SEARCH_FOCUS,
+    JSON.stringify({
+      section: r.section,
+      variant: r.variant,
+      path: r.path,
+    }),
+  );
+  navigateAdminToSection(r.section);
+}
+
+let adminSearchDebounceTimer;
+function initAdminSearch() {
+  if (!adminGlobalSearch || !adminSearchResults) return;
+  adminGlobalSearch.addEventListener("input", () => {
+    const q = adminGlobalSearch.value;
+    clearTimeout(adminSearchDebounceTimer);
+    if (!q.trim()) {
+      closeSearchDropdown();
+      return;
+    }
+    adminSearchDebounceTimer = setTimeout(async () => {
+      adminSearchResults.innerHTML = "";
+      const loading = document.createElement("div");
+      loading.className = "admin-search-loading";
+      loading.textContent = "Searching…";
+      adminSearchResults.appendChild(loading);
+      adminSearchResults.classList.remove("hidden");
+      adminGlobalSearch.setAttribute("aria-expanded", "true");
+      try {
+        const rows = await buildAdminSearchIndex();
+        const matches = filterSearchRows(rows, q);
+        displaySearchMatches(matches);
+      } catch (e) {
+        adminSearchResults.innerHTML = "";
+        const err = document.createElement("div");
+        err.className = "admin-search-empty";
+        err.textContent = e.message || "Search failed.";
+        adminSearchResults.appendChild(err);
+      }
+    }, 240);
+  });
+
+  adminGlobalSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeSearchDropdown();
+      adminGlobalSearch.blur();
+    }
+  });
+
+  adminGlobalSearch.addEventListener("focus", async () => {
+    const q = adminGlobalSearch.value.trim();
+    if (!q) return;
+    try {
+      const rows = await buildAdminSearchIndex();
+      const matches = filterSearchRows(rows, q);
+      displaySearchMatches(matches);
+    } catch {
+      /* ignore */
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (topNavSearchWrap && !topNavSearchWrap.contains(e.target)) {
+      closeSearchDropdown();
+    }
+  });
+}
 
 function withIcon(icon, label) {
   const iconKey = icon
@@ -276,11 +577,6 @@ function initThemeSystem() {
     themeModeIcon?.classList.add("switching");
     const current = document.body.getAttribute("data-theme-mode") === "dark";
     applyThemeMode(current ? "light" : "dark");
-    toast(
-      current ? "Light mode enabled ☀️" : "Dark mode enabled 🌙",
-      "info",
-      1400,
-    );
     setTimeout(() => themeModeIcon?.classList.remove("switching"), 320);
   });
 }
@@ -826,13 +1122,22 @@ function sortNestedKeys(parentKey, keys) {
   return sortKeysList(keys, pref);
 }
 
-function renderPrimitiveField({ label, value, path, contentRoot, onChange }) {
+function renderPrimitiveField({
+  label,
+  value,
+  path,
+  contentRoot,
+  onChange,
+  section,
+  variant,
+}) {
   const wrap = document.createElement("div");
   wrap.className = "field";
   const lab = document.createElement("span");
   lab.className = "label";
   lab.textContent = label;
   wrap.appendChild(lab);
+  attachFieldSearchMeta(wrap, path, section, variant);
 
   if (typeof value === "boolean") {
     const row = document.createElement("label");
@@ -1018,6 +1323,8 @@ function renderNode({
             path: childPath,
             contentRoot,
             onChange,
+            section,
+            variant,
           }),
         );
       }
@@ -1081,12 +1388,15 @@ function renderNode({
     path,
     contentRoot,
     onChange,
+    section,
+    variant,
   });
 }
 
 function renderEditor(section, data) {
   const root = document.createElement("div");
   if (!data?.variants?.length) {
+    clearSectionSaveMount();
     const empty = document.createElement("div");
     empty.className = "error-banner";
     empty.textContent =
@@ -1118,16 +1428,32 @@ function renderEditor(section, data) {
   liveToggle.appendChild(document.createTextNode("Live on site"));
   const saveBtn = document.createElement("button");
   saveBtn.type = "button";
-  saveBtn.className = "btn primary";
+  saveBtn.className = "btn primary btn-save";
   saveBtn.innerHTML = withIcon("badge-check", "Save changes");
+  const setSaveLoading = (loading) => {
+    if (loading) {
+      saveBtn.classList.add("is-loading");
+      saveBtn.disabled = true;
+      saveBtn.setAttribute("aria-busy", "true");
+      saveBtn.innerHTML =
+        '<span class="btn-spinner" aria-hidden="true"></span><span class="btn-label">Saving…</span>';
+    } else {
+      saveBtn.classList.remove("is-loading");
+      saveBtn.removeAttribute("aria-busy");
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = withIcon("badge-check", "Save changes");
+      refreshIcons();
+    }
+  };
   const pill = document.createElement("span");
   pill.className = "pill";
   pill.textContent = `${data.variants.length} variants`;
   toolbar.appendChild(variantSelect);
   toolbar.appendChild(liveToggle);
-  toolbar.appendChild(saveBtn);
   toolbar.appendChild(pill);
   root.appendChild(toolbar);
+  clearSectionSaveMount();
+  if (sectionSaveMount) sectionSaveMount.appendChild(saveBtn);
 
   const editorMount = document.createElement("div");
   editorMount.className = "field-grid";
@@ -1241,8 +1567,8 @@ function renderEditor(section, data) {
 
   saveBtn.addEventListener("click", async () => {
     let didSave = false;
+    setSaveLoading(true);
     try {
-      saveBtn.disabled = true;
       const payloadContent = JSON.parse(JSON.stringify(working || {}));
       normalizeEditorContent(section, payloadContent);
       await apiFetch(`/api/admin/section/${section}`, {
@@ -1250,20 +1576,23 @@ function renderEditor(section, data) {
         body: JSON.stringify({
           variant: currentVariant,
           content: payloadContent,
-          isActive: liveInput.checked ? true : undefined,
+          isActive: true,
         }),
       });
       didSave = true;
-      toast("Changes saved successfully ✅", "success");
+      invalidateAdminSearchIndex();
+      toast("Changes saved and published to the live site ✅", "success");
       const refreshed = await apiFetch(`/api/admin/section/${section}`);
       data.variants = refreshed.variants;
       syncVariantOptionLabels();
+      const curLive = data.variants.find((v) => v.variant === currentVariant);
+      liveInput.checked = !!curLive?.isActive;
       saveStatus.textContent = "Saved";
       hasDirtyToastShown = false;
     } catch (e) {
       toast(e.message || "Save failed", "error");
     } finally {
-      saveBtn.disabled = false;
+      setSaveLoading(false);
       if (!didSave && saveStatus.textContent !== "Saved") {
         saveStatus.textContent = "Not saved";
       }
@@ -1272,11 +1601,77 @@ function renderEditor(section, data) {
 
   paint(true);
   refreshIcons();
+
+  (function applyPendingSearchFocusFromSearch() {
+    const raw = sessionStorage.getItem(LS_ADMIN_SEARCH_FOCUS);
+    if (!raw) return;
+    let pending;
+    try {
+      pending = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem(LS_ADMIN_SEARCH_FOCUS);
+      return;
+    }
+    if (pending.section !== section) return;
+    sessionStorage.removeItem(LS_ADMIN_SEARCH_FOCUS);
+    const pathToFocus = pending.path;
+    const targetVariant = pending.variant;
+    if (!pathToFocus || !Array.isArray(pathToFocus)) return;
+
+    const scrollToField = () => {
+      requestAnimationFrame(() => {
+        const el = findFieldElementByPath(pathToFocus);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("admin-search-flash");
+          const focusable = el.querySelector("textarea, input");
+          if (focusable && typeof focusable.focus === "function") {
+            setTimeout(() => focusable.focus(), 380);
+          }
+          setTimeout(() => el.classList.remove("admin-search-flash"), 2800);
+        } else {
+          toast(
+            "Could not scroll to that field (it may be hidden or renamed).",
+            "info",
+            2400,
+          );
+        }
+      });
+    };
+
+    if (
+      targetVariant &&
+      variantSelect.querySelector(
+        `option[value="${CSS.escape(targetVariant)}"]`,
+      ) &&
+      variantSelect.value !== targetVariant
+    ) {
+      variantSelect.value = targetVariant;
+      currentVariant = targetVariant;
+      working = JSON.parse(
+        JSON.stringify(
+          data.variants.find((x) => x.variant === targetVariant)?.content ||
+            {},
+        ),
+      );
+      normalizeEditorContent(section, working);
+      const sel = data.variants.find((x) => x.variant === targetVariant);
+      liveInput.checked = !!sel?.isActive;
+      paint(true);
+      refreshIcons();
+      setTimeout(scrollToField, 0);
+    } else {
+      scrollToField();
+    }
+  })();
+
   return root;
 }
 
 async function renderDashboard() {
   ensurePageStartsAtTop();
+  clearSectionSaveMount();
+  if (saveStatus) saveStatus.textContent = "";
   pageTitle.textContent = "Dashboard";
   pageHint.textContent = "Live content map from the public API.";
   view.innerHTML = "";
@@ -1330,9 +1725,9 @@ async function renderDashboard() {
 
 async function renderSection(name) {
   ensurePageStartsAtTop();
+  clearSectionSaveMount();
   pageTitle.textContent = `${name[0].toUpperCase()}${name.slice(1)} Section`;
-  pageHint.textContent =
-    "Select variant, edit fields, toggle visibility, and save.";
+  pageHint.textContent = SECTION_PAGE_HINTS[name] || "";
   view.innerHTML = "";
   try {
     const data = await apiFetch(`/api/admin/section/${name}`);
@@ -1340,6 +1735,7 @@ async function renderSection(name) {
     ensurePageStartsAtTop();
     animateViewEnter();
   } catch (e) {
+    clearSectionSaveMount();
     const banner = document.createElement("div");
     banner.className = "error-banner";
     banner.textContent = e.message;
@@ -1439,6 +1835,7 @@ function doLogout() {
   localStorage.removeItem(LS_ASSET_ORIGIN);
   sidebarUserEmail.textContent = "";
   if (topNavUser) topNavUser.textContent = "";
+  clearSectionSaveMount();
   saveStatus.textContent = "";
   showLoginError("");
   updateShell();
@@ -1458,6 +1855,7 @@ window.addEventListener("hashchange", () => {
 
 initReactToastify();
 initThemeSystem();
+initAdminSearch();
 updateShell();
 refreshIcons();
 if (getJwt()) {

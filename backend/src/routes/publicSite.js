@@ -33,7 +33,7 @@ router.get("/site", async (_req, res) => {
       services2: sections.services2 || null,
       education: sections.education || null,
       brands: sections.brands || null,
-      portfolio: sections.portfolio || sections.projects || null,
+      portfolio: sections.projects || sections.portfolio || null,
       skills2: sections.skills2 || null,
       services: sections.services || null,
       projects: sections.projects || null,

@@ -29,5 +29,10 @@ export function getSectionContent(site, name) {
     if (name === "blogs" && about.homePageBlogs) return about.homePageBlogs;
     if (name === "skills2" && about.homePageSkills2) return about.homePageSkills2;
   }
+  if (name === "portfolio") {
+    const fromProjects = site?.sections?.projects?.content;
+    if (fromProjects) return fromProjects;
+    return site?.sections?.portfolio?.content || null;
+  }
   return site?.sections?.[name]?.content || null;
 }

@@ -43,7 +43,7 @@ export default function DynamicHomeHeader({
     const cmsBase = getCmsBaseUrl();
     if (!cmsBase) return;
     let cancelled = false;
-    fetch(`${cmsBase}/api/public/site`)
+    fetch(`${cmsBase}/api/public/site`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data?.sections?.navbar) return;

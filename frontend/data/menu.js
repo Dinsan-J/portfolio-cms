@@ -1,6 +1,5 @@
 export const menuItems = [
   { label: "Home", href: "#", isLink: false },
-  { label: "About", href: "/about", isLink: true },
   {
     label: "Services",
     href: "#",
@@ -10,6 +9,7 @@ export const menuItems = [
       { label: "Service Details", href: "/service-details/success-architects" },
     ],
   },
+  { label: "About", href: "/about", isLink: true },
   {
     label: "Blog",
     href: "#",
@@ -38,7 +38,6 @@ export const menuItems = [
 ];
 export const menuItemsLight = [
   { label: "Home", href: "#", isLink: false },
-  { label: "About", href: "/about-white", isLink: true },
   {
     label: "Services",
     href: "#",
@@ -51,6 +50,7 @@ export const menuItemsLight = [
       },
     ],
   },
+  { label: "About", href: "/about-white", isLink: true },
   {
     label: "Blog",
     href: "#",

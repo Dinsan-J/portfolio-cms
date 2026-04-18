@@ -79,6 +79,10 @@
               ><span class="nav-icon"><i data-lucide="sparkles"></i></span
               >Hero</a
             >
+            <a href="#/services" data-route
+              ><span class="nav-icon"><i data-lucide="wrench"></i></span
+              >Services</a
+            >
             <a href="#/about" data-route
               ><span class="nav-icon"><i data-lucide="user-round"></i></span
               >About</a
@@ -102,10 +106,6 @@
             <a href="#/skills2" data-route
               ><span class="nav-icon"><i data-lucide="bolt"></i></span
               >Skills 2</a
-            >
-            <a href="#/services" data-route
-              ><span class="nav-icon"><i data-lucide="wrench"></i></span
-              >Services</a
             >
             <a href="#/projects" data-route
               ><span class="nav-icon"><i data-lucide="folder"></i></span
@@ -145,44 +145,75 @@
           </div>
         </aside>
         <main class="main">
-          <div class="top-nav">
-            <div>
-              <div class="top-nav-title">Admin Panel</div>
-              <div class="top-nav-sub">Manage all portfolio sections</div>
-            </div>
-            <div class="top-nav-right">
-              <span id="topNavUser" class="top-nav-user muted"></span>
-              <button
-                id="topLogoutBtn"
-                type="button"
-                class="btn secondary small"
+          <div class="main-sticky-head">
+            <div class="top-nav">
+              <div class="top-nav-brand">
+                <div class="top-nav-title">Admin Panel</div>
+                <div class="top-nav-sub">Manage all portfolio sections</div>
+              </div>
+              <div
+                class="top-nav-search"
+                id="topNavSearchWrap"
               >
-                <i data-lucide="log-out"></i>
-                Logout
-              </button>
-            </div>
-          </div>
-          <header class="topbar">
-            <div>
-              <h1 id="pageTitle" class="page-title">Dashboard</h1>
-              <p id="pageHint" class="page-hint">
-                Overview of your live site configuration.
-              </p>
-            </div>
-            <div class="topbar-actions">
-              <button
-                id="themeModeBtn"
-                type="button"
-                class="icon-btn"
-                title="Toggle dark mode"
-              >
-                <span id="themeModeIcon" aria-hidden="true"
-                  ><i data-lucide="moon-star"></i
+                <span class="top-nav-search-icon" aria-hidden="true"
+                  ><i data-lucide="search"></i
                 ></span>
-              </button>
-              <span id="saveStatus" class="muted"></span>
+                <label class="visually-hidden" for="adminGlobalSearch"
+                  >Search content</label
+                >
+                <input
+                  type="search"
+                  id="adminGlobalSearch"
+                  class="top-nav-search-input"
+                  placeholder="Search sections &amp; fields…"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-autocomplete="list"
+                  aria-controls="adminSearchResults"
+                  aria-expanded="false"
+                />
+                <div
+                  id="adminSearchResults"
+                  class="admin-search-dropdown hidden"
+                  role="listbox"
+                  aria-label="Search results"
+                ></div>
+              </div>
+              <div class="top-nav-right">
+                <div class="top-nav-editor-tools">
+                  <span id="saveStatus" class="muted save-status-inline"></span>
+                  <span id="sectionSaveMount" class="section-save-mount"></span>
+                  <button
+                    id="themeModeBtn"
+                    type="button"
+                    class="icon-btn"
+                    title="Toggle dark mode"
+                  >
+                    <span id="themeModeIcon" aria-hidden="true"
+                      ><i data-lucide="moon-star"></i
+                    ></span>
+                  </button>
+                </div>
+                <span id="topNavUser" class="top-nav-user muted"></span>
+                <button
+                  id="topLogoutBtn"
+                  type="button"
+                  class="btn secondary small"
+                >
+                  <i data-lucide="log-out"></i>
+                  Logout
+                </button>
+              </div>
             </div>
-          </header>
+            <header class="topbar">
+              <div>
+                <h1 id="pageTitle" class="page-title">Dashboard</h1>
+                <p id="pageHint" class="page-hint">
+                  Overview of your live site configuration.
+                </p>
+              </div>
+            </header>
+          </div>
           <div id="view" class="view"></div>
         </main>
       </div>

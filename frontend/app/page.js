@@ -90,11 +90,15 @@ function getSectionData(site, sectionName) {
     return { variant: "skills21", content: aboutContent.homePageSkills2 };
   }
 
+  // Home page portfolio area: prefer Projects (admin) over legacy Portfolio when both are live
+  if (sectionName === "portfolio") {
+    if (site?.sections?.projects) return site.sections.projects;
+    if (site?.sections?.portfolio) return site.sections.portfolio;
+    return null;
+  }
+
   const section = site?.sections?.[sectionName];
   if (section) return section;
-  if (sectionName === "portfolio" && site?.sections?.projects) {
-    return site.sections.projects;
-  }
   if (sectionName === "copyright") {
     if (site?.sections?.footer?.content?.copyright) {
       return { variant: "copyright1", content: site.sections.footer.content.copyright };

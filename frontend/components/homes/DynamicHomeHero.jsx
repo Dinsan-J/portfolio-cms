@@ -75,7 +75,7 @@ export default function DynamicHomeHero({
     const cmsBase = getCmsBaseUrl();
     if (!cmsBase) return;
     let cancelled = false;
-    fetch(`${cmsBase}/api/public/site`)
+    fetch(`${cmsBase}/api/public/site`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data?.sections?.hero) return;

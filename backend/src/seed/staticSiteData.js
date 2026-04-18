@@ -2,7 +2,6 @@
 
 export const menuItems = [
   { label: "Home", href: "#", isLink: false },
-  { label: "About", href: "/about", isLink: true },
   {
     label: "Services",
     href: "#",
@@ -12,6 +11,7 @@ export const menuItems = [
       { label: "Service Details", href: "/service-details/success-architects" },
     ],
   },
+  { label: "About", href: "/about", isLink: true },
   {
     label: "Blog",
     href: "#",
@@ -41,7 +41,6 @@ export const menuItems = [
 
 export const menuItemsLight = [
   { label: "Home", href: "#", isLink: false },
-  { label: "About", href: "/about-white", isLink: true },
   {
     label: "Services",
     href: "#",
@@ -54,6 +53,7 @@ export const menuItemsLight = [
       },
     ],
   },
+  { label: "About", href: "/about-white", isLink: true },
   {
     label: "Blog",
     href: "#",
@@ -83,8 +83,8 @@ export const menuItemsLight = [
 
 export const onepageNavItems = [
   { id: 1, href: "#home", text: "Home" },
-  { id: 2, href: "#about", text: "About" },
-  { id: 3, href: "#service", text: "Services" },
+  { id: 2, href: "#service", text: "Services" },
+  { id: 3, href: "#about", text: "About" },
   { id: 4, href: "#portfolio", text: "Portfolio" },
   { id: 5, href: "#resume", text: "Resume" },
   { id: 6, href: "#pricing", text: "Pricing" },
