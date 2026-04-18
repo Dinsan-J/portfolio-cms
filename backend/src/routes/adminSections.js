@@ -138,11 +138,38 @@ router.put("/section/:name", async (req, res) => {
       );
     }
     const fresh = await Section.findOne({ section: name, variant }).lean();
+    const merged = mergeWithSectionDefaults(name, fresh.variant, fresh.content);
+
+    // Home page reads Skills2 from about.homePageSkills2 OR standalone skills2.
+    // Keep both copies identical so edits from either admin screen always apply.
+    if (name === "about" && merged?.homePageSkills2) {
+      const s2 = await Section.findOne({ section: "skills2", isActive: true });
+      if (s2) {
+        await Section.updateOne(
+          { section: "skills2", variant: s2.variant },
+          { $set: { content: merged.homePageSkills2 } },
+        );
+      }
+    }
+    if (name === "skills2") {
+      const ab = await Section.findOne({ section: "about", isActive: true });
+      if (ab && typeof ab.content === "object" && ab.content) {
+        const nextAbout = {
+          ...ab.content,
+          homePageSkills2: merged,
+        };
+        await Section.updateOne(
+          { section: "about", variant: ab.variant },
+          { $set: { content: nextAbout } },
+        );
+      }
+    }
+
     res.json({
       section: name,
       variant: fresh.variant,
       isActive: fresh.isActive,
-      content: mergeWithSectionDefaults(name, fresh.variant, fresh.content),
+      content: merged,
       updatedAt: fresh.updatedAt,
     });
   } catch (e) {

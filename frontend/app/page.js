@@ -20,6 +20,7 @@ import Skills2 from "@/components/common/Skills2";
 import Testimonials from "@/components/homes/home-1/Testimonials";
 import TestimonialsAlt from "@/components/common/Testimonials";
 import CommonComponents from "@/components/common/CommonComponents";
+import { resolveHomePageSkills2 } from "@/lib/sectionCms";
 
 export const metadata = {
   title:
@@ -86,8 +87,8 @@ function getSectionData(site, sectionName) {
   if (sectionName === "blogs" && aboutContent?.homePageBlogs) {
     return { variant: "blogs1", content: aboutContent.homePageBlogs };
   }
-  if (sectionName === "skills2" && aboutContent?.homePageSkills2) {
-    return { variant: "skills21", content: aboutContent.homePageSkills2 };
+  if (sectionName === "skills2") {
+    return resolveHomePageSkills2(site);
   }
 
   // Home page portfolio area: prefer Projects (admin) over legacy Portfolio when both are live

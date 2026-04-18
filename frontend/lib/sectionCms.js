@@ -18,7 +18,27 @@ export async function getPublicSitePayload() {
   }
 }
 
+/**
+ * Skills2 content may live on the About document (`homePageSkills2`) or on a
+ * standalone `skills2` section. The API keeps both in sync on save; prefer the
+ * About copy when present so the home page matches the About editor.
+ */
+export function resolveHomePageSkills2(site) {
+  const fromAbout = site?.sections?.about?.content?.homePageSkills2;
+  const s2Doc = site?.sections?.skills2;
+  const fromStandalone = s2Doc?.content;
+
+  if (!fromAbout && !fromStandalone) return null;
+  if (fromAbout) {
+    return { variant: "skills21", content: fromAbout };
+  }
+  return { variant: s2Doc.variant || "skills21", content: fromStandalone };
+}
+
 export function getSectionContent(site, name) {
+  if (name === "skills2") {
+    return resolveHomePageSkills2(site)?.content ?? null;
+  }
   const about = site?.sections?.about?.content;
   if (about) {
     if (name === "facts" && about.homePageFacts) return about.homePageFacts;
@@ -27,7 +47,6 @@ export function getSectionContent(site, name) {
       return about.homePageEducation;
     if (name === "brands" && about.homePageBrands) return about.homePageBrands;
     if (name === "blogs" && about.homePageBlogs) return about.homePageBlogs;
-    if (name === "skills2" && about.homePageSkills2) return about.homePageSkills2;
   }
   if (name === "portfolio") {
     const fromProjects = site?.sections?.projects?.content;

@@ -722,6 +722,191 @@ function looksLikeMediaField(key, val) {
   return looksLikeImageField(key, val) || looksLikeVideoField(key, val);
 }
 
+/** Keys that store Font Awesome class strings (fa-solid …) in CMS content. */
+function looksLikeFontAwesomeIconField(key, val) {
+  if (typeof val !== "string") return false;
+  const k = String(key || "");
+  const explicit = [
+    "icon",
+    "iconClass",
+    "readMoreIcon",
+    "arrowButtonIcon",
+    "navigationNextIcon",
+    "navigationPrevIcon",
+    "submitIconClass",
+    "envelopeIconClass",
+    "sidebarToggleIcon",
+    "mobileMenuToggleIcon",
+  ];
+  if (explicit.includes(k)) return true;
+  if (/Icon$/i.test(k) && val.trim() && /^fa[\s\w-]+$/i.test(val.trim()))
+    return true;
+  return false;
+}
+
+const FONT_AWESOME_PICKER_ICONS = [
+  "fa-solid fa-angle-right",
+  "fa-solid fa-angle-left",
+  "fa-solid fa-angle-up",
+  "fa-solid fa-angle-down",
+  "fa-solid fa-arrow-right",
+  "fa-solid fa-arrow-left",
+  "fa-solid fa-arrow-up",
+  "fa-solid fa-arrow-down",
+  "fa-solid fa-arrow-up-right",
+  "fa-solid fa-arrow-up-left",
+  "fa-solid fa-arrow-down-wide-short",
+  "fa-solid fa-chevron-right",
+  "fa-solid fa-chevron-left",
+  "fa-solid fa-chevron-up",
+  "fa-solid fa-chevron-down",
+  "fa-solid fa-circle-arrow-right",
+  "fa-solid fa-circle-check",
+  "fa-solid fa-circle-xmark",
+  "fa-solid fa-xmark",
+  "fa-solid fa-check",
+  "fa-solid fa-plus",
+  "fa-solid fa-minus",
+  "fa-solid fa-magnifying-glass",
+  "fa-solid fa-bars",
+  "fa-solid fa-bars-staggered",
+  "fa-solid fa-house",
+  "fa-solid fa-envelope",
+  "fa-solid fa-phone",
+  "fa-solid fa-location-dot",
+  "fa-solid fa-link",
+  "fa-solid fa-calendar",
+  "fa-solid fa-clock",
+  "fa-solid fa-user",
+  "fa-solid fa-lock",
+  "fa-solid fa-bolt",
+  "fa-solid fa-star",
+  "fa-solid fa-heart",
+  "fa-regular fa-envelope",
+  "fa-regular fa-circle",
+  "fa-regular fa-circle-check",
+  "fa-regular fa-user",
+  "fa-regular fa-bell",
+  "fa-light fa-pen-ruler",
+  "fa-light fa-bezier-curve",
+  "fa-light fa-lightbulb",
+  "fa-light fa-envelope",
+  "fa-light fa-calendar",
+  "fa-light fa-pen-nib",
+  "fa-light fa-building-columns",
+  "fa-brands fa-instagram",
+  "fa-brands fa-linkedin-in",
+  "fa-brands fa-twitter",
+  "fa-brands fa-facebook-f",
+  "fa-brands fa-github",
+  "fa-brands fa-youtube",
+  "fa-brands fa-dribbble",
+  "fa-brands fa-behance",
+  "fa-sharp fa-regular fa-arrow-right",
+  "fa-sharp fa-thin fa-lock",
+];
+
+let iconPickerCallback = null;
+
+function ensureIconPickerModal() {
+  if (document.getElementById("iconPickerOverlay")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "iconPickerOverlay";
+  overlay.className = "icon-picker-overlay hidden";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "iconPickerTitle");
+  overlay.innerHTML = `
+    <div class="icon-picker-panel">
+      <div class="icon-picker-head">
+        <h2 id="iconPickerTitle" class="icon-picker-title">Choose icon</h2>
+        <button type="button" class="icon-picker-close" id="iconPickerClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="icon-picker-hint muted">Free Font Awesome 6 classes. Search filters the list below, or open the full catalog.</p>
+      <input type="search" id="iconPickerSearch" class="icon-picker-search" placeholder="Filter icons (e.g. arrow, envelope)…" autocomplete="off" />
+      <div id="iconPickerGrid" class="icon-picker-grid"></div>
+      <div class="icon-picker-footer">
+        <a href="https://fontawesome.com/search?o=r&m=free" target="_blank" rel="noopener noreferrer" class="icon-picker-fa-link">Browse all free icons on fontawesome.com</a>
+        <button type="button" class="btn secondary small" id="iconPickerCancel">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const close = () => {
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+    iconPickerCallback = null;
+  };
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.getElementById("iconPickerClose").addEventListener("click", close);
+  document.getElementById("iconPickerCancel").addEventListener("click", close);
+  document.getElementById("iconPickerSearch").addEventListener("input", () => {
+    renderIconPickerGrid(document.getElementById("iconPickerSearch").value);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.classList.contains("hidden")) {
+      e.preventDefault();
+      close();
+    }
+  });
+}
+
+function renderIconPickerGrid(query) {
+  const grid = document.getElementById("iconPickerGrid");
+  if (!grid) return;
+  const q = String(query || "")
+    .trim()
+    .toLowerCase();
+  const list = q
+    ? FONT_AWESOME_PICKER_ICONS.filter((cls) => cls.toLowerCase().includes(q))
+    : FONT_AWESOME_PICKER_ICONS.slice();
+  grid.innerHTML = "";
+  if (!list.length) {
+    const empty = document.createElement("div");
+    empty.className = "icon-picker-empty muted";
+    empty.textContent = "No matches — try another word or paste a class from fontawesome.com.";
+    grid.appendChild(empty);
+    return;
+  }
+  list.forEach((cls) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "icon-picker-cell";
+    const ic = document.createElement("i");
+    ic.setAttribute("aria-hidden", "true");
+    ic.className = cls;
+    const span = document.createElement("span");
+    span.className = "icon-picker-cell-label";
+    span.textContent = cls;
+    btn.appendChild(ic);
+    btn.appendChild(span);
+    btn.addEventListener("click", () => {
+      if (typeof iconPickerCallback === "function") iconPickerCallback(cls);
+      document.getElementById("iconPickerOverlay").classList.add("hidden");
+      document
+        .getElementById("iconPickerOverlay")
+        .setAttribute("aria-hidden", "true");
+      iconPickerCallback = null;
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function openFontAwesomeIconPicker(currentValue, onSelect) {
+  ensureIconPickerModal();
+  iconPickerCallback = onSelect;
+  const overlay = document.getElementById("iconPickerOverlay");
+  const searchInput = document.getElementById("iconPickerSearch");
+  searchInput.value = "";
+  renderIconPickerGrid("");
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+  setTimeout(() => searchInput.focus(), 50);
+}
+
 function fieldIconName(label, value) {
   const key = String(label || "").toLowerCase();
   if (looksLikeVideoField(key, value)) return "video";
@@ -1189,6 +1374,50 @@ function renderPrimitiveField({
   wrap.appendChild(inputWrap);
 
   const keyName = path[path.length - 1];
+  if (looksLikeFontAwesomeIconField(keyName, value)) {
+    const tools = document.createElement("div");
+    tools.className = "field-icon-tools";
+    const previewFa = document.createElement("div");
+    previewFa.className = "icon-class-preview";
+    const updateFaPreview = () => {
+      previewFa.innerHTML = "";
+      const cls = String(input.value || "")
+        .trim()
+        .replace(/[^a-zA-Z0-9\s\-_]/g, "")
+        .trim();
+      if (cls) {
+        const iel = document.createElement("i");
+        iel.className = cls;
+        iel.setAttribute("aria-hidden", "true");
+        previewFa.appendChild(iel);
+      }
+    };
+    updateFaPreview();
+    input.addEventListener("input", updateFaPreview);
+    const pickBtn = document.createElement("button");
+    pickBtn.type = "button";
+    pickBtn.className = "btn secondary small";
+    pickBtn.textContent = "Browse icons";
+    pickBtn.addEventListener("click", () => {
+      openFontAwesomeIconPicker(input.value.trim(), (chosen) => {
+        input.value = chosen;
+        setDeep(contentRoot, path, chosen);
+        onChange();
+        updateFaPreview();
+      });
+    });
+    const ext = document.createElement("a");
+    ext.href = "https://fontawesome.com/search?o=r&m=free";
+    ext.target = "_blank";
+    ext.rel = "noopener noreferrer";
+    ext.className = "icon-picker-external-link";
+    ext.textContent = "fontawesome.com — full catalog";
+    tools.appendChild(previewFa);
+    tools.appendChild(pickBtn);
+    tools.appendChild(ext);
+    wrap.appendChild(tools);
+  }
+
   if (looksLikeMediaField(keyName, value)) {
     const isVideoField = looksLikeVideoField(keyName, value);
     const preview = document.createElement("div");
